@@ -13,10 +13,12 @@ body {
     left: 50%; 
     transform: translate(-50%, -50%); 
     background-color: rgba(255, 255, 255, 0.8); /* Transparent white background */ 
-    padding: 20px; 
+    /* padding: 5px;  */
     border-radius: 10px; 
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     border-radius: 20px;
+    height:fit-content;
+    overflow: hidden;
     
 }
 
@@ -74,3 +76,73 @@ a:hover {
 h1.bold-txt {
     color: #023e8a;
 }
+
+
+/* this is the styling for the sign up and login buttons on the home screen */
+
+.btns-container { 
+    display: flex; 
+    justify-content: center; 
+    margin-top: 20px; 
+    gap: 10px;
+     /* Add spacing between buttons */ 
+    } 
+
+.login-btn {
+    border-radius: 35px;
+    /* background-image: linear-gradient(#ced0f7, #04055b); */
+    background-color: black;
+    color: white;
+    height: 70px;
+    width: 120px;
+    font-size: 23px;
+    font-weight: bold;
+    overflow: hidden;
+    /* font-family: "VT323", serif; */
+}
+
+/* btn stars does nothing currently not working */
+
+.btn-stars {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+
+.signup-btn {
+    position: relative;
+    width: 75px;
+    height: 75px;
+    background-color: #0466c8;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+
+
+
+/* .signup-btn { 
+    background-color: #007bff !important;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 16px;
+    margin-right: 10px;
+} */
+
+
+/* .custom-py-5 {
+    padding-bottom: 0 !important;
+} */

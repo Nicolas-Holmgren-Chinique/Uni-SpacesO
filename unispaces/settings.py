@@ -78,11 +78,11 @@ WSGI_APPLICATION = "unispaces.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "postgres",
-        "USER": "postgres",
-        "PASSWORD": "postgres",
-        "HOST": "db", #set in the docker-compose file
-        "PORT": 5432,
+        "NAME": os.environ.get('POSTGRES_DB'),
+        "USER": os.environ.get('POSTGRES_USER'),
+        "PASSWORD": os.environ.get('POSTGRES_PASSWORD'),
+        "HOST": os.environ.get('DB_HOST', 'db'), #set in the docker-compose file
+        "PORT": os.environ.get('DB_PORT', '5432'), #set in the docker-compose file
     }
 }
 

@@ -5,19 +5,24 @@
 
 
 {% block head %}
+<div class="space-container">
+  <canvas></canvas>
+
   <body>
     <div class="container-for-text">
-      <section class="py-5 text-center container">
+      <section class="custom-py-5" style="padding-bottom: 0 !important;">
         <div class="row py-lg-5">
           <div class="col-lg-6 col-md-8 mx-auto">
+            <!-- here is the loop for adding in the text content for the title, and description of the website. -->
             {% for content in content %}
             <h1 class="bold-txt">{{ content.title }}</h1>
             <p class="lead text-body-secondary" style="font-size: 25px; font-weight: 100px;">{{ content.description }}</p>
             <p>
             {% endfor %}
-            <div class="buttons-container">
-              <a href="#" class="btn btn-primary my-2">Main call to action</a>
-              <a href="#" class="btn btn-secondary my-2">Secondary action</a>
+            <div class="btns-container">
+              <button class="login-btn" type="button" onclick="location.href='#'">Login
+              </button>
+              <button class="signup-btn" type="button" onclick="location.href='#'">Sign-up</button>
             </div>
             </p>
           </div>
@@ -25,6 +30,7 @@
       </section>
     </div>
   </body>
+</div>
 {% endblock %}
 
 
@@ -44,7 +50,6 @@
                     <button type="button" class="btn btn-sm btn-outline-secondary">View</button>
                     <button type="button" class="btn btn-sm btn-outline-secondary">Edit</button>
                   </div>
-                  <small class="text-body-secondary">9 mins</small>
                 </div>
               </div>
             </div>

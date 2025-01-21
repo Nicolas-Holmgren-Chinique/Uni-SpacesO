@@ -14,6 +14,13 @@
     <link rel="stylesheet" href="{% static 'css/home.css' %}">
     <link rel="canonical" href="https://getbootstrap.com/docs/5.3/examples/album/">
 
+
+    <!-- fonts -->
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Onest:wght@100..900&family=VT323&display=swap" rel="stylesheet">
+
     
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@docsearch/css@3">
@@ -130,14 +137,15 @@
     </svg>
 
 
-    
+
 <header data-bs-theme="dark">
+{% for item in base_content %}
   <div class="collapse text-bg-dark" id="navbarHeader">
     <div class="container">
       <div class="row">
         <div class="col-sm-8 col-md-7 py-4">
-          <h4>About</h4>
-          <p class="text-body-secondary">Add some information about the album below, the author, or any other background context. Make it a few sentences long so folks can pick up some informative tidbits. Then, link them off to some social networking sites or contact information.</p>
+          <h4>{{ item.title }}</h4>
+          <p class="text-body-secondary">{{ item.description }}</p>
         </div>
         <div class="col-sm-4 offset-md-1 py-4">
           <h4>Contact</h4>
@@ -150,6 +158,7 @@
       </div>
     </div>
   </div>
+{% endfor %}
 
   {% for content in content %}
   <div class="navbar navbar-dark bg-dark shadow-sm">
@@ -166,15 +175,23 @@
   {% endfor %}
 </header>
 
-<!-- this is the container for head content -->
-    <div class="space-container">
-      <canvas></canvas>
-        {% block head %}
-        {% endblock %}
-    </div>
+
 
 
 <main>
+
+  <!-- this is the container for head content -->
+      
+  {% block head %}
+
+
+
+
+  {% endblock %}
+
+
+  <!-- this block content is for all the content in the body of the page. -->
+   
     {% block content %}
 
     {% endblock %}
@@ -240,6 +257,7 @@
     </footer>
   </div>
 <script src="{% static 'js/home.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 <script src="/docs/5.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 
     </body>
