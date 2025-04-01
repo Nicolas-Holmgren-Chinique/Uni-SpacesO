@@ -1,0 +1,43 @@
+{% extends 'home/base.html' %}
+
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<div class="form-background-container d-flex justify-content-center align-items-center" style="height: 100vh; position: relative;">
+    <!-- Space Animation Background -->
+    <div class="space-container login-space-container" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0;">
+        <canvas></canvas>
+    </div>
+
+    <!-- Sign-In Form -->
+    <main class="d-flex justify-content-center align-items-center" style="z-index: 1; position: relative;">
+        <form method="POST" class="text-center" style="width: 100%; max-width: 330px;">
+            {% csrf_token %}
+            <img class="mb-4" src="{% static 'Uni-spaces-logo.png' %}" alt="" width="72" height="57">
+            <h1 class="h3 mb-3 fw-normal" style="color: white;">Please sign in</h1>
+
+            <!-- Username Field -->
+            <div class="form-floating mb-3">
+                <input type="text" name="username" id="username" class="form-control" placeholder="Username" required>
+                <label for="username">Username</label>
+            </div>
+
+            <!-- Password Field -->
+            <div class="form-floating mb-3">
+                <input type="password" name="password" id="password" class="form-control" placeholder="Password" required>
+                <label for="password">Password</label>
+            </div>
+
+            <!-- Remember Me Checkbox -->
+            <div class="form-check text-start my-3">
+                <input type="checkbox" name="remember_me" id="remember_me" class="form-check-input">
+                <label for="remember_me" class="form-check-label" style="color: white;">Remember me</label>
+            </div>
+
+            <!-- Submit Button -->
+            <button class="btn btn-primary w-100 py-2" type="submit">Sign in</button>
+            <p class="mt-5 mb-3 text-body-secondary">&copy; 2017–2024</p>
+        </form>
+    </main>
+</div>
+{% endblock %}

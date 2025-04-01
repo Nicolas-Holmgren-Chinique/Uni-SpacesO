@@ -10,7 +10,7 @@ body {
 .container-for-text {
     position: absolute; 
     top: 50%; 
-    left: 50%; 
+    left: 50%;
     transform: translate(-50%, -50%); 
     background-color: rgba(255, 255, 255, 0.8); /* Transparent white background */ 
     /* padding: 5px;  */
@@ -18,7 +18,7 @@ body {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     border-radius: 20px;
     height:fit-content;
-    overflow: hidden;
+    /* overflow-y: auto; */
     
 }
 
@@ -28,10 +28,6 @@ body {
     margin-top: 20px;
 }
 
-/* .contianer-for-text  {
-    text-align: center;
-    color: blue;
-} */
 
 
 canvas {
@@ -42,13 +38,14 @@ canvas {
     height: 100%;
 }
 
-a {
+/* got rid of this style as it was messing up the lists and some other aspects of the project */
+/* a {
     position: absolute;
     bottom: 2vmin;
     right: 2vmin;
     color: rgba(255,255,255,0.2);
     text-decoration: none;
-}
+} */
 
 .space-container {
     position: relative;
@@ -88,6 +85,9 @@ h1.bold-txt {
      /* Add spacing between buttons */ 
     } 
 
+
+
+
 .login-btn {
     border-radius: 35px;
     /* background-image: linear-gradient(#ced0f7, #04055b); */
@@ -101,30 +101,36 @@ h1.bold-txt {
     /* font-family: "VT323", serif; */
 }
 
-/* btn stars does nothing currently not working */
 
-.btn-stars {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
+.login-btn:hover {
+    background-color: #e5e5e5;
+    color: black;
+    text-decoration: none;
+    font-size: 23px;
+    font-weight: bold;
+    overflow: hidden;
+    /* font-family: "VT323", serif; */
+}
+
+.signup-btn:hover {
+    background-color: #e5e5e5;
+    color: #0466c8;
 }
 
 
 .signup-btn {
     position: relative;
-    width: 75px;
-    height: 75px;
+    height: 70px;
+    width: 120px;
     background-color: #0466c8;
-    border-radius: 50%;
+    border-radius: 35px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
     font-weight: bold;
     cursor: pointer;
+    font-size: 23px;
 }
 
 

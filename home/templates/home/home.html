@@ -20,9 +20,21 @@
             <p>
             {% endfor %}
             <div class="btns-container">
-              <button class="login-btn" type="button" onclick="location.href='#'">Login
+              <!-- onclick="location.href='{% url 'login' %}'" -->
+
+              <!-- the url for this button has been very odd, wasn't working the previous way I was doing it
+               ignore the error below, it is a django error, but it is working so I am not going to change it. -->
+               
+              <button class="login-btn" type="button">Login
+                
+                <script type="text/javascript">
+                  document.querySelector('.login-btn').onclick = function() {
+                    window.location.href = "{% url 'login' %}";
+                  };
+                </script>
               </button>
-              <button class="signup-btn" type="button" onclick="location.href='#'">Sign-up</button>
+            
+              <button class="signup-btn" type="button" href='#'>Sign-up</button>
             </div>
             </p>
           </div>
