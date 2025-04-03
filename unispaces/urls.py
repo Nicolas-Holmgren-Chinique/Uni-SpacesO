@@ -19,7 +19,7 @@ from django.contrib import admin
 from django.urls import path, include
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
-    path('', include('home.urls')),
-    path('accounts/', include('accounts.urls')),
+    path('admin/', admin.site.urls),
+    path('home/', include('home.urls')),  # Ensure this points to your home app
+    path('accounts/', include('accounts.urls')),  # Ensure this points to your accounts app
 ]

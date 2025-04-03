@@ -1,7 +1,9 @@
+from django.views.generic import TemplateView
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.views import LoginView
-from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.mixins import LoginRequiredMixin
+
 
 from django.shortcuts import render
 from django.urls import reverse_lazy
@@ -23,9 +25,10 @@ class CustomLoginView(LoginView):
     authentication_form = AuthenticationForm  # Use Django's built-in AuthenticationForm
 
 
+# dashboard was missplelled lets see if fixing it works
 
     def get_success_url(self):
-        return reverse_lazy('dashbaord')  # Redirect to the dashboard after login
+        return reverse_lazy('dashboard')  # Redirect to the dashboard after login
 
 
 """
@@ -58,3 +61,7 @@ def dashboard(request):
         'account/dashboard.html',
         {'section': 'dashboard'} # You can pass any context variables you need here
     )
+
+
+class DashboardView(LoginRequiredMixin, TemplateView):
+    template_name = 'accounts/dashboard.html'  # Path to your dashboard template

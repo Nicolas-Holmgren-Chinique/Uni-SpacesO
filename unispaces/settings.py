@@ -131,7 +131,8 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 CRISPY_TEMPLATE_PACK = 'bootstrap4'
 
-LOGIN_REDIRECT_URL = 'dashbaord'
+LOGIN_REDIRECT_URL = 'dashboard'  # Redirect to the dashboard after login, ensure this matches your URL name in urls.py
+# Ensure you have a dashboard URL in your urls.py for the above redirect to work
 
 LOGIN_URL = 'login'
 

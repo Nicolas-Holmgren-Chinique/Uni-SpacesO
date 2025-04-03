@@ -1,10 +1,10 @@
 {% extends 'home/base.html' %}
+{% load static %}
 
 {% block title %}
     Dashboard
 {% endblock %}
 
-{% block content %}
 
 {% block content %}
 <main class="container">
@@ -19,9 +19,9 @@
 
     <h2>Actions</h2>
     <ul>
-        <li><a href="{% url 'accounts:change_password' %}">Change Password</a></li>
-        <li><a href="{% url 'accounts:edit_profile' %}">Edit Profile</a></li>
-        <li><a href="{% url 'logout' %}">Logout</a></li>
+        <li><a href="#">Change Password</a></li>
+        <li><a href="#">Edit Profile</a></li>
+        <li><a href="#">Logout</a></li>
     </ul>
 </main>
 {% endblock %}
