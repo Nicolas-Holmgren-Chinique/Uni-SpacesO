@@ -32,14 +32,19 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    # so in this case if we were to use a custom auth app we would have to add it at the top so that it can override the default auth app
+    'accounts.apps.AccountsConfig',  # Custom accounts app
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "crispy_forms",
+
+    # my apps
     "home",
-    "accounts",
+    # "accounts",
 ]
 
 MIDDLEWARE = [
@@ -57,7 +62,7 @@ ROOT_URLCONF = "unispaces.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -136,4 +141,9 @@ LOGIN_REDIRECT_URL = 'dashboard'  # Redirect to the dashboard after login, ensur
 
 LOGIN_URL = 'login'
 
-LOGOUT_REDIRECT_URL = 'login'
+LOGOUT_REDIRECT_URL = 'logout'  # Redirect to the login page after logout, ensure this matches your URL name in urls.py
+
+
+# this is the crispy forms template pack, it is used to render the forms in the templates
+
+CRISPY_TEMPLATE_PACK = 'bootstrap4'

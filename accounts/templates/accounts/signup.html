@@ -1,10 +1,70 @@
 {% extends 'home/base.html' %}
-
 {% load static %}
-
-{% block title %}
-    Sign Up
-{% endblock %}
-
+{% block title %}Sign-Up{% endblock %}
 
 {% block content %}
+<div class="form-background-container d-flex justify-content-center align-items-center" style="height: 100vh; position: relative;">
+    <!-- Space Animation Background -->
+    <div class="space-container login-space-container" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0;">
+        <canvas></canvas>
+    </div>
+
+    <!-- Sign-In Form -->
+    <div class="white-background" style="background-color: rgba(255, 255, 255, 0.8); border-radius: 10px; padding: 20px; width: 100%; max-width: 400px; z-index: 1; position: relative;">
+        <!-- this div is going to be the white background behind the sign-up form -->
+        <main class="d-flex justify-content-center align-items-center" style="z-index: 1; position: relative;">
+            <form method="POST" class="text-center" style="width: 100%; max-width: 330px;">
+                {% csrf_token %}
+
+                <a href="{% url 'home' %}">
+                    <img class="mb-4" src="{% static 'images/Uni-spaces-logo.png' %}" alt="" width="75%" height="75%">
+                </a>
+
+                <!-- Name field -->
+
+                <h1 class="h3 mb-3 fw-normal">Sign-Up</h1>
+                <div class="form-floating mb-3">
+                    <input type="text" name="name" id="name" class="form-control" placeholder="Name" required>
+                    <label for="name">Name</label>
+                </div>
+
+                <!-- Username Field -->
+                <div class="form-floating mb-3">
+                    <input type="text" name="username" id="username" class="form-control" placeholder="Username" required>
+                    <label for="username">Username</label>
+                </div>
+
+                <!-- Password Field -->
+                <div class="form-floating mb-3">
+                    <input type="password" name="password" id="password" class="form-control" placeholder="Password" required>
+                    <label for="password">Password</label>
+                </div>
+
+                <!-- confirm password -->
+                <div class="form-floating mb-3">
+                    <input type="password" name="password" id="password" class="form-control" placeholder="Password" required>
+                    <label for="password">Password</label>
+                </div>
+
+                <!-- Univeristy or college  -->
+                <div class="form-floating mb-3">
+                    <input type="text" name="university" id="university" class="form-control" placeholder="University">
+                    <label for="university">University</label>
+                </div>
+
+                <!-- Remember Me Checkbox -->
+                <div class="form-check text-start my-3">
+                    <input type="checkbox" name="remember_me" id="remember_me" class="form-check-input">
+                    <label for="remember_me" class="form-check-label">Remember me</label>
+                </div>
+
+                
+
+                <!-- Submit Button -->
+                <button class="btn btn-primary w-100 py-2" type="submit">Sign in</button>
+                <p class="mt-5 mb-3 text-body-secondary">&copy; 2024–2025</p>
+            </form>
+        </main>
+</div>
+</div>
+{% endblock %}

@@ -5,6 +5,7 @@
 
 
 {% block head %}
+<!-- this div and canvas is the space animation -->
 <div class="space-container">
   <canvas></canvas>
 
@@ -19,8 +20,7 @@
             <p class="lead text-body-secondary" style="font-size: 25px; font-weight: 100px;">{{ content.description }}</p>
             <p>
             {% endfor %}
-            <div class="btns-container">
-              <!-- onclick="location.href='{% url 'login' %}'" -->
+            <div class="btns-container">              <!-- onclick="location.href='{% url 'login' %}'" -->
 
               <!-- the url for this button has been very odd, wasn't working the previous way I was doing it
                ignore the error below, it is a django error, but it is working so I am not going to change it. -->

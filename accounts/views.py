@@ -1,4 +1,5 @@
 from django.views.generic import TemplateView
+from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.views import LoginView
@@ -46,6 +47,16 @@ class SignUpView(CreateView):
     form_class = UserCreationForm
     template_name = 'accounts/signup.html'
     success_url = reverse_lazy('login')
+
+    def form_valid(self, form):
+        form.save()
+        username = form.cleaned_data.get('username')
+        password = form.cleaned_data.get('password1')
+        user = authenticate(username=username, password=password)
+        if user is not None:
+            # Log the user in after successful signup
+            login(self.request, user)
+            return super().form_valid(form)  # Redirect to the success URL after login
 
 
 
