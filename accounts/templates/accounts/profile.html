@@ -1,0 +1,109 @@
+<!-- 
+Django Template: User Profile Display
+
+This template creates a centered profile card that displays a user's profile
+information including their profile picture, biographical information, 
+university affiliation, and email address. It provides a clean, card-based
+interface for viewing user profiles.
+
+Key Features:
+- Centered profile card layout
+- Profile picture with fallback to default astronaut helmet
+- Edit and remove profile picture buttons
+- User information display (university, bio, email)
+- Responsive design using Bootstrap
+- Integration with Django's user authentication system
+
+Template Structure:
+1. Header with logo and navigation back to dashboard
+2. Centered profile card with user information
+3. Profile editing and picture management buttons
+
+Dependencies:
+- Bootstrap 5 for responsive layout and components
+- Django's user authentication system
+- UserProfile model for extended user information
+- Static files for default profile images
+-->
+
+{% extends 'home/base.html' %}
+{% load static %}
+
+
+{% block title %}
+    {{ user.username }}'s Profile
+{% endblock %}
+
+{% block head %}
+    <!-- Profile-specific CSS styling -->
+    <link rel="stylesheet" href="{% static 'accounts/css/profile.css' %}">
+    
+    <!-- Header Section with Logo -->
+    <header class="p-3 mb-3 border-bottom">
+      <!-- Logo that links back to dashboard -->
+      <div class="logo">
+        <a href="{% url 'dashboard' %}">
+        <img src="{% static 'images/uni-spaces-only-logo.png' %}" alt="Logo" style="width: 100px; height: 100px;">
+        </a>
+      </div>
+{% endblock %}
+
+
+
+
+{% block content %}
+<!-- Main Profile Display Section -->
+<!-- Centered layout using Flexbox for vertical and horizontal centering -->
+<div class="d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+  
+  <!-- Profile Card Container -->
+  <div class="profile-card" style="width: 320px;">
+    <!-- Bootstrap Card Component for Clean Styling -->
+    <div class="card shadow">
+      <div class="card-body text-center">
+        
+        <!-- Profile Header -->
+        <h1 class="h4 mb-2">{{ user.username }}'s Profile</h1>
+        <h2 class="h6 mb-2">Profile Picture</h2>
+        
+        <!-- Profile Picture Section -->
+        <!-- Shows user's uploaded picture or default astronaut helmet -->
+        {% if user.profile.profile_picture %}
+          <img src="{{ user.profile.profile_picture.url }}" alt="{{ user.username }}" class="img-fluid rounded-circle mb-2" style="max-width: 120px;">
+        {% else %}
+          <!-- Default profile picture: Astronaut helmet SVG -->
+          <img src="{% static 'images/astro_helmet 1.svg' %}" alt="Default Profile Picture" class="img-fluid rounded-circle mb-2" style="max-width: 120px;">
+        {% endif %}
+        
+        <!-- Profile Action Buttons -->
+        <div class="mt-2">
+          <!-- Edit Profile Button -->
+          <a href="{% url 'edit_profile' %}" class="btn btn-primary btn-sm me-2">Edit Profile</a>
+          
+          <!-- Remove Profile Picture Button (only shown if user has a picture) -->
+          {% if user.profile.profile_picture %}
+            <a href="{% url 'remove_profile_picture' %}" class="btn btn-danger btn-sm">Remove Picture</a>
+          {% endif %}
+        </div>
+        
+        <!-- Divider -->
+        <hr>
+        
+        <!-- User Information Section -->
+        <!-- Left-aligned text with user details -->
+        <div class="text-start ps-2">
+          <!-- University Information -->
+          <div><strong>University:</strong> {{ user.profile.university }}</div>
+          
+          <!-- Biographical Information -->
+          <div><strong>Bio:</strong> {{ user.profile.bio }}</div>
+          
+          <!-- Email Address -->
+          <div><strong>Email:</strong> {{ user.email }}</div>
+        </div>
+        
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

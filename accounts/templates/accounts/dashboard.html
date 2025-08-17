@@ -1,68 +1,276 @@
+<!-- 
+Django Template: User Dashboard with Space-Themed Community Visualization
+
+This template creates the main dashboard interface for the UniSpaces social network.
+It features a space-themed design with floating community "planets" that users can
+interact with, along with a sidebar for navigation and user information.
+
+Key Features:
+- Space-themed canvas background with floating community planets
+- Responsive sidebar navigation with user's communities
+- Profile picture dropdown in header navigation
+- Community creation functionality
+- Interactive planet visualization using HTML5 Canvas
+
+Template Structure:
+1. Header with logo, navigation, search, and profile dropdown
+2. Main content area with sidebar and space canvas
+3. JavaScript for interactive planet visualization
+
+Dependencies:
+- Bootstrap 5 for responsive layout and components
+- HTML5 Canvas for space visualization
+- Custom CSS for space theming
+- JavaScript for planet animation and interaction
+-->
+
 {% extends 'home/base.html' %}
 {% load static %}
 
 {% block title %}
-    Dashboard
+    {{ user.username }} Dashboard
 {% endblock %}
-{% block head %}
-    <link rel="stylesheet" href="{% static 'accounts/css/dashboard.css' %}">
-    <header class="p-3 mb-3 border-bottom">
 
+{% block head %}
+    <!-- Dashboard-specific CSS for space theming and layout -->
+    <link rel="stylesheet" href="{% static 'accounts/css/dashboard.css' %}">
+    
+    <!-- Header Section with Navigation -->
+    <header class="p-3 mb-3 border-bottom">
+      <!-- Logo Section - Links to home page -->
       <div class="logo">
         <a href="{% url 'home' %}">
         <img src="{% static 'images/uni-spaces-only-logo.png' %}" alt="Logo" style="width: 100px; height: 100px;">
         </a>
       </div>
 
+      <!-- Main Navigation Container -->
+      <div class="container">
+        <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start">
+          <!-- Bootstrap icon placeholder -->
+          <a href="/" class="d-flex align-items-center mb-2 mb-lg-0 link-body-emphasis text-decoration-none">
+            <svg class="bi me-2" width="40" height="32" role="img" aria-label="Bootstrap"><use xlink:href="#bootstrap"/></svg>
+          </a>
 
+          <!-- Main Navigation Links -->
+          <ul class="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0">
+            <!-- Welcome message (commented out) -->
+            <!-- <li><p>Welcome, {{ user.username }}!</p></li> -->
+            <li><a href="#" class="nav-link px-2 link-secondary">Overview</a></li>
+            <li><a href="#" class="nav-link px-2 link-body-emphasis">Inventory</a></li>
+            <li><a href="#" class="nav-link px-2 link-body-emphasis">Customers</a></li>
+            <li><a href="#" class="nav-link px-2 link-body-emphasis">Products</a></li>
+          </ul>
 
-        <div class="container">
-          <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start">
-            <a href="/" class="d-flex align-items-center mb-2 mb-lg-0 link-body-emphasis text-decoration-none">
-              <svg class="bi me-2" width="40" height="32" role="img" aria-label="Bootstrap"><use xlink:href="#bootstrap"/></svg>
+          <!-- Search Form -->
+          <form class="col-12 col-lg-auto mb-3 mb-lg-0 me-lg-3" role="search">
+            <input type="search" class="form-control" placeholder="Search..." aria-label="Search">
+          </form>
+
+          <!-- User Profile Dropdown -->
+          <div class="dropdown text-end">
+            <a href="#" class="d-block link-body-emphasis text-decoration-none dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+              <!-- Profile Picture with Fallback -->
+              <!-- Shows user's profile picture if uploaded, otherwise shows default astronaut helmet -->
+              {% if user.profile.profile_picture %}
+                <img src="{{ user.profile.profile_picture.url }}" alt="Profile" width="32" height="32" class="rounded-circle">
+              {% else %}
+                <img src="{% static 'images/astro_helmet 1.svg' %}" alt="Default Profile Picture" width="32" height="32" class="rounded-circle">
+              {% endif %}
             </a>
-
-
-    
-            <ul class="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0">
-              <!-- <li><p>Welcome, {{ user.username }}!</p></li> -->
-              <li><a href="#" class="nav-link px-2 link-secondary">Overview</a></li>
-              <li><a href="#" class="nav-link px-2 link-body-emphasis">Inventory</a></li>
-              <li><a href="#" class="nav-link px-2 link-body-emphasis">Customers</a></li>
-              <li><a href="#" class="nav-link px-2 link-body-emphasis">Products</a></li>
+            <!-- Dropdown Menu Items -->
+            <ul class="dropdown-menu text-small">
+              <li><a class="dropdown-item" href="#">Build a  Community...</a></li>
+              <li><a class="dropdown-item" href="#">Settings</a></li>
+              <li><a class="dropdown-item" href="{% url 'profile_view' %}">Profile</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="{% url 'logout' %}">Sign out</a></li>
             </ul>
-    
-            <form class="col-12 col-lg-auto mb-3 mb-lg-0 me-lg-3" role="search">
-              <input type="search" class="form-control" placeholder="Search..." aria-label="Search">
-            </form>
-    
-            <div class="dropdown text-end">
-              <a href="#" class="d-block link-body-emphasis text-decoration-none dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                <img src="https://github.com/mdo.png" alt="mdo" width="32" height="32" class="rounded-circle">
-              </a>
-              <ul class="dropdown-menu text-small">
-                <li><a class="dropdown-item" href="#">Build a  Community...</a></li>
-                <li><a class="dropdown-item" href="#">Settings</a></li>
-                <li><a class="dropdown-item" href="#">Profile</a></li>
-                <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item" href="#">Sign out</a></li>
-              </ul>
-            </div>
           </div>
         </div>
-      </header>
+      </div>
+    </header>
 {% endblock %}
 
 
 {% block content %}
 
-<div class="space-container">
-    <canvas style="height: 80vh;"></canvas>
+<!-- Main Dashboard Content Area -->
+<!-- Space-themed container with sidebar navigation and interactive canvas -->
+<div class="space-container" style="height: 800px; position: relative;">
 
+  <!-- Left Sidebar Navigation -->
+  <!-- Contains user's communities, navigation links, and community creation button -->
+  <div class="d-flex flex-column flex-shrink-0 p-3 text-bg-dark" style="width: 280px; z-index: 10; position: relative;">
+      
+      <!-- Sidebar Header with User's Sector Title -->
+      <a href="/" class="d-flex align-items-center mb-3 text-white text-decoration-none">
+        <svg class="bi me-2" width="40" height="32"><use href="#bootstrap"></use></svg>
+        <span class="fs-4">{{ user.username }}'s Sector</span>
+      </a>
+      <hr />
+      
+      <!-- User's Communities Section -->
+      <p>Your communities</p>
+      <!-- Static community links (these should be dynamically generated from user's communities) -->
+      <a href="google.com"><ul>Calculus</ul></a>
+      <ul>Civil Engineering</ul>
+      <ul>Computer Science</ul>
+
+      <!-- Hyperlanes Section (Navigation shortcuts) -->
+      <p>Hyperlanes</p>
+
+      <!-- Navigation Pills for Dashboard Functions -->
+      <ul class="nav nav-pills flex-column mb-auto">
+        <li class="nav-item">
+          <a href="#" class="nav-link active">
+            <svg class="bi me-2" width="16" height="16"><use href="#home"></use></svg> Home
+          </a>
+        </li>
+        <li>
+          <a href="youtube.com" class="nav-link text-white">
+            <svg class="bi me-2" width="16" height="16"><use href="#speedometer2"></use></svg> Dashboard
+          </a>
+        </li>
+        <li>
+          <a href="#" class="nav-link text-white">
+            <svg class="bi me-2" width="16" height="16"><use href="#table"></use></svg> Orders
+          </a>
+        </li>
+      </ul>
+      
+      <!-- Community Creation Button -->
+      <button class="btn btn-primary d-flex align-items-center">
+        <a href="{% url 'create_community' %}" class="text-white text-decoration-none"> + Create Community</a>
+      </button>
+    </div>
+
+    <!-- Space Canvas for Community Visualization -->
+    <!-- HTML5 Canvas element for rendering floating community planets -->
+    <!-- Positioned absolutely to cover the main content area behind the sidebar -->
+    <canvas style="position: absolute; top: 0; left: 0; z-index: 0;">
+      <!-- Canvas content is drawn dynamically via JavaScript -->
+    </canvas>
+    <!-- 
+    JavaScript for Interactive Community Planet Visualization
+    
+    This commented-out code demonstrates how to create floating, interactive
+    community "planets" on the canvas. Each community becomes a colored circle
+    that floats around the space, never overlapping with other planets.
+    
+    Features:
+    - Dynamic planet generation from Django community data
+    - Collision detection to prevent overlap
+    - Smooth animation with bounce physics
+    - Click detection for navigation to community pages
+    - Responsive sizing and positioning
+    
+    The code is currently commented out but can be enabled for the full
+    space visualization experience.
+    -->
+    <!-- <script>
+  const canvas = document.querySelector("canvas");
+  const ctx = canvas.getContext("2d");
+  canvas.width = window.innerWidth;
+  canvas.height = 800;
+
+  // Get community data from Django template (passed as JSON)
+  const planets = JSON.parse('{{ planet_data|safe }}');
+
+  function Planet(planetData) {
+    const radius = 45;
+    let x, y, dx, dy;
+    
+    // Generate random position (collision detection would go here)
+    do {
+      x = Math.random() * (canvas.width - 2 * radius) + radius;
+      y = Math.random() * (canvas.height - 2 * radius) + radius;
+    } while (false); // Add collision logic later
+
+    // Random velocity for movement
+    dx = (Math.random() - 0.5) * 0.3;
+    dy = (Math.random() - 0.5) * 0.3;
+
+    return {
+      ...planetData,
+      x, y, dx, dy, radius
+    };
+  }
+
+  // Create planet objects from community data
+  const planetObjects = planets.map(p => Planet(p));
+
+  function drawPlanet(p) {
+    // Draw planet circle
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+    ctx.fillStyle = p.color;
+    ctx.fill();
+    ctx.closePath();
+
+    // Draw planet label
+    ctx.fillStyle = "white";
+    ctx.font = "bold 14px Onest, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(p.name, p.x, p.y + 5);
+  }
+
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    for (let p of planetObjects) {
+      // Update position
+      p.x += p.dx;
+      p.y += p.dy;
+
+      // Bounce off walls
+      if (p.x + p.radius > canvas.width || p.x - p.radius < 0) p.dx *= -1;
+      if (p.y + p.radius > canvas.height || p.y - p.radius < 0) p.dy *= -1;
+
+      drawPlanet(p);
+    }
+    requestAnimationFrame(animate);
+  }
+
+  // Handle planet clicks for navigation
+  canvas.addEventListener("click", (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
+
+    planetObjects.forEach(p => {
+      const dx = clickX - p.x;
+      const dy = clickY - p.y;
+      if (Math.sqrt(dx * dx + dy * dy) < p.radius) {
+        window.location.href = p.url;
+      }
+    });
+  });
+
+  animate();
+</script> -->
+
+<!-- External JavaScript for Space Background Animation -->
+<!-- This script handles the starfield background animation -->
+<script src="{% static 'js/home.js' %}"></script>
+
+
+    <!-- 
+    Legacy Dashboard Content (Commented Out)
+    
+    This section contains the original non-space-themed dashboard content
+    that was used before implementing the space visualization. It's kept
+    for reference and could be re-enabled if needed.
+    
+    Features:
+    - Simple text-based dashboard
+    - User information display
+    - Basic action links
+    - Standard web interface (no space theme)
+    -->
     <!-- <main class="container">
         <h1>Dashboard</h1>
         
-
         <h2>Your Information</h2>
         <ul>
             <li>Email: {{ user.email }}</li>

@@ -1,0 +1,73 @@
+{% extends 'home/base.html' %}
+{% block title %}Create Community{% endblock %}
+
+{% block content %}
+<div class="space-container" style="height: 100vh; position: relative;">
+  <canvas style="position: absolute; top: 0; left: 0; z-index: 0;"></canvas>
+
+  <div class="d-flex justify-content-center align-items-center" style="height: 100%; position: relative; z-index: 1;">
+    <div style="background-color: rgba(255, 255, 255, 0.8); border-radius: 10px; padding: 30px; width: 100%; max-width: 600px;">
+
+      <h2 class="mb-4 text-center">Create a Community</h2>
+
+      <form method="POST">
+        {% csrf_token %}
+
+        <!-- Community Type -->
+        <div class="mb-3">
+          {{ form.community_type.label_tag }}
+          {{ form.community_type }}
+        </div>
+
+        <!-- General Fields -->
+        <div class="mb-3">
+          {{ form.title.label_tag }}
+          {{ form.title }}
+        </div>
+
+        <div class="mb-3">
+          {{ form.description.label_tag }}
+          {{ form.description }}
+        </div>
+
+        <!-- Parent select (only for sub) -->
+        <div class="mb-3" id="parent-select" style="display: none;">
+          {{ form.parent.label_tag }}
+          {{ form.parent }}
+        </div>
+
+        <!-- Sub creation (only for super) -->
+        <div id="sub-section" style="display: none;">
+          <div class="mb-3">
+            {{ form.sub_title.label_tag }}
+            {{ form.sub_title }}
+          </div>
+          <div class="mb-3">
+            {{ form.sub_description.label_tag }}
+            {{ form.sub_description }}
+          </div>
+        </div>
+
+        <div class="text-center">
+          <button type="submit" class="btn btn-primary">Create</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- JS to toggle sections -->
+<script>
+  function toggleSections() {
+    const type = document.querySelector('input[name="community_type"]:checked').value;
+    document.getElementById('parent-select').style.display = (type === 'sub') ? 'block' : 'none';
+    document.getElementById('sub-section').style.display = (type === 'super') ? 'block' : 'none';
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const radios = document.querySelectorAll('input[name="community_type"]');
+    radios.forEach(r => r.addEventListener('change', toggleSections));
+    toggleSections();  // Run once on load
+  });
+</script>
+{% endblock %}
