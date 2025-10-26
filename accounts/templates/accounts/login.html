@@ -22,16 +22,27 @@
 
                 <h1 class="h3 mb-3 fw-normal">Please sign in</h1>
 
+                <!-- Display form errors if any -->
+                {% if form.errors %}
+                    <div class="alert alert-danger">
+                        {% for field, errors in form.errors.items %}
+                            {% for error in errors %}
+                                <div>{{ error }}</div>
+                            {% endfor %}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
                 <!-- Username Field -->
                 <div class="form-floating mb-3">
-                    <input type="text" name="username" id="username" class="form-control" placeholder="Username" required>
-                    <label for="username">Username</label>
+                    {{ form.username }}
+                    <label for="{{ form.username.id_for_label }}">Username</label>
                 </div>
 
                 <!-- Password Field -->
                 <div class="form-floating mb-3">
-                    <input type="password" name="password" id="password" class="form-control" placeholder="Password" required>
-                    <label for="password">Password</label>
+                    {{ form.password }}
+                    <label for="{{ form.password.id_for_label }}">Password</label>
                 </div>
 
                 <!-- Remember Me Checkbox -->

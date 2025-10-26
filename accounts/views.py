@@ -39,7 +39,7 @@ from django.shortcuts import redirect, render, get_object_or_404
 # Local app imports
 from communities.models import Community
 from .models import UserProfile
-from .forms import ProfileForm
+from .forms import ProfileForm, SignUpForm
 
 """
 Authentication Views
@@ -66,6 +66,30 @@ class CustomLoginView(LoginView):
     redirect_authenticated_user = True  # Redirect if user is already authenticated
     authentication_form = AuthenticationForm  # Use Django's built-in AuthenticationForm
 
+    def get_form(self, form_class=None):
+        """Override to add CSS classes to form fields"""
+        form = super().get_form(form_class)
+        form.fields['username'].widget.attrs.update({
+            'class': 'form-control',
+            'placeholder': 'Username'
+        })
+        form.fields['password'].widget.attrs.update({
+            'class': 'form-control',
+            'placeholder': 'Password'
+        })
+        return form
+
+    def form_invalid(self, form):
+        """Handle invalid form submission - add debugging"""
+        print(f"Login form errors: {form.errors}")
+        print(f"Form cleaned data: {getattr(form, 'cleaned_data', 'No cleaned data')}")
+        return super().form_invalid(form)
+    
+    def form_valid(self, form):
+        """Handle valid form submission - add debugging"""
+        print(f"Login successful for user: {form.get_user()}")
+        return super().form_valid(form)
+
     def get_success_url(self):
         """
         Determine redirect URL after successful login
@@ -78,37 +102,57 @@ class CustomLoginView(LoginView):
 
 class SignUpView(CreateView):
     """
-    User Registration View
+    User Registration View with Auto-Login
     
-    This view handles new user registration using Django's built-in
-    UserCreationForm. It provides a form for users to create accounts
-    and automatically redirects them to the login page after successful
-    registration.
+    This view handles new user registration using a custom SignUpForm
+    that includes email and university fields. It automatically logs 
+    users in after successful registration and creates their UserProfile, 
+    then redirects them directly to their dashboard.
     
     Attributes:
-        form_class: Django's UserCreationForm for user registration
+        form_class: Custom SignUpForm with email and university fields
         template_name: Path to the signup template
-        success_url: Where to redirect after successful registration
+        success_url: Where to redirect after successful registration (dashboard)
     
     Methods:
-        form_valid(): Called when form submission is valid - logs the redirect
+        form_valid(): Called when form submission is valid - creates profile and logs user in
     """
-    form_class = UserCreationForm
+    form_class = SignUpForm  # Use custom form with email and university
     template_name = 'accounts/signup.html'
-    success_url = reverse_lazy('login')
+    success_url = reverse_lazy('dashboard')  # Redirect to dashboard instead of login
+
+    def form_invalid(self, form):
+        """Handle invalid form submission - add debugging"""
+        print(f"Signup form errors: {form.errors}")
+        print(f"Form data: {form.data}")
+        return super().form_invalid(form)
 
     def form_valid(self, form):
         """
-        Handle valid form submission
+        Handle valid form submission - create user, profile, and auto-login
         
         Args:
-            form: The validated UserCreationForm
+            form: The validated SignUpForm with email and university
             
         Returns:
-            HttpResponseRedirect: Redirect to success_url
+            HttpResponseRedirect: Redirect to dashboard with user logged in
         """
-        print(f"Redirecting to: {self.success_url}")  # Debug statement
-        return super().form_valid(form)
+        print(f"Signup form valid - creating user: {form.cleaned_data['username']}")
+        
+        # Save the user (this also creates the UserProfile via the form's save method)
+        response = super().form_valid(form)
+        
+        # Get the newly created user
+        user = self.object
+        
+        # Log the user in automatically
+        login(self.request, user)
+        
+        # Add success message
+        messages.success(self.request, f'Welcome to UniSpaces, {user.username}! Your account has been created successfully.')
+        
+        print(f"User {user.username} registered and logged in. Redirecting to dashboard.")
+        return response
 
 
 """
@@ -135,8 +179,13 @@ def dashboard(request):
         section: Identifies current page section
         planet_data: JSON string containing community data for canvas visualization
     """
-    # Get all parent communities (top-level communities, not subcommunities)
-    parent_communities = Community.objects.filter(is_parent=True)
+    # Get parent communities that the user is a member of
+    user_memberships = request.user.membership_set.all()
+    user_community_ids = [membership.community.id for membership in user_memberships]
+    parent_communities = Community.objects.filter(
+        id__in=user_community_ids,
+        is_parent=True
+    )
 
     # Prepare community data for JavaScript canvas visualization
     # Each community becomes a "planet" in the space-themed interface
@@ -202,27 +251,38 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         profile, created = UserProfile.objects.get_or_create(user=self.request.user)
         context['profile'] = profile
         
-        # Get all parent communities for the space visualization
-        # Parent communities are top-level communities, not subcommunities
-        parent_communities = Community.objects.filter(is_parent=True)
+        # Get user's super communities only for main dashboard visualization
+        # Main dashboard should only show parent communities (super communities)
+        user_super_communities = Community.objects.filter(
+            members__user=self.request.user,
+            parent=None  # Only parent communities (super communities)
+        ).distinct()
+        
+        # Get all super communities (parent=None) for modal dropdown
+        super_communities = Community.objects.filter(parent=None)
         
         # Convert community data to JSON for JavaScript canvas rendering
         # Each community becomes a "planet" in the space interface
-        planet_data = json.dumps([
+        # Main dashboard shows only super communities - clicking navigates to sub-dashboard
+        planet_data = [
             {
-                "name": c.title,           # Community name shown on planet
-                "slug": c.slug,            # URL-safe community identifier
-                "color": c.color,          # Color for planet visualization
-                "is_parent": c.is_parent,  # Parent community flag
-                "url": f"/communities/{c.slug}/"  # Link to community page
+                "id": c.id,                 # Community database ID
+                "title": c.title,           # Community name shown on planet
+                "slug": c.slug,             # URL-safe community identifier  
+                "color": c.color,           # Color for planet visualization
+                "is_parent": c.is_parent,   # Whether this is a parent community
+                "parent_id": c.parent.id if c.parent else None,  # Parent community ID
+                "url": f"/communities/{c.slug}/dashboard/"  # Link to sub-community dashboard
             }
-            for c in parent_communities
-        ])
+            for c in user_super_communities
+        ]
         
         # Add dashboard-specific context
         context.update({
-            'section': 'dashboard',      # For navigation highlighting
-            'planet_data': planet_data   # Community data for JavaScript
+            'section': 'dashboard',           # For navigation highlighting
+            'planet_data': json.dumps(planet_data),  # Community data for JavaScript
+            'super_communities': super_communities,   # For modal dropdown
+            'user_communities': user_super_communities      # User's super communities for sidebar
         })
         
         return context

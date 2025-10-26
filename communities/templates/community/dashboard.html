@@ -1,0 +1,602 @@
+<!-- 
+Django Template: Sub-Community Dashboard with Space-Themed Visualization
+
+This template creates a dashboard interface for viewing sub-communities within
+a super community. It shows the sub-communities as floating planets in a 
+space-themed environment, similar to the main dashboard but focused on one
+super community's children.
+
+Key Features:
+- Space-themed canvas background with floating sub-community planets
+- Breadcrumb navigation showing parent community
+- Sidebar with community information and member status
+- Interactive planet visualization for sub-communities
+- Different visual indicators for communities user has joined
+
+Template Structure:
+1. Header with breadcrumb navigation back to main dashboard
+2. Sidebar with parent community info and sub-community list
+3. Main space canvas area with floating sub-community planets
+4. JavaScript for interactive planet visualization
+
+Dependencies:
+- Bootstrap 5 for responsive layout and components
+- HTML5 Canvas for space visualization
+- Custom CSS for space theming
+- JavaScript for planet animation and interaction
+-->
+
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block title %}
+    {{ parent_community.title }} - Sub-Communities
+{% endblock %}
+
+{% block head %}
+  <!-- Dashboard-specific CSS for space theming and layout -->
+  <link rel="stylesheet" href="{% static 'accounts/css/dashboard.css' %}">
+    
+    <!-- Header Section with Navigation and Breadcrumbs -->
+    <header class="p-3 mb-3 border-bottom">
+      <!-- Logo Section -->
+      <div class="logo">
+        <a href="{% url 'home' %}">
+        <img src="{% static 'images/uni-spaces-only-logo.png' %}" alt="Logo" style="width: 100px; height: 100px;">
+        </a>
+      </div>
+
+      <!-- Main Navigation Container -->
+      <div class="container">
+        <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start">
+          <!-- Bootstrap icon placeholder -->
+          <a href="/" class="d-flex align-items-center mb-2 mb-lg-0 link-body-emphasis text-decoration-none">
+            <svg class="bi me-2" width="40" height="32" role="img" aria-label="Bootstrap"><use xlink:href="#bootstrap"/></svg>
+          </a>
+
+          <!-- Breadcrumb Navigation -->
+          <nav aria-label="breadcrumb" class="col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0">
+            <ol class="breadcrumb mb-0">
+              <li class="breadcrumb-item">
+                <a href="{% url 'dashboard' %}" class="link-body-emphasis text-decoration-none">
+                  <i class="fas fa-rocket me-1"></i>Main Dashboard
+                </a>
+              </li>
+              <li class="breadcrumb-item active" aria-current="page">
+                <span class="parent-community-title">{{ parent_community.title }}</span> Sector
+              </li>
+            </ol>
+          </nav>
+
+          <!-- Search Form -->
+          <form class="col-12 col-lg-auto mb-3 mb-lg-0 me-lg-3" role="search">
+            <input type="search" class="form-control" placeholder="Search sub-communities..." aria-label="Search">
+          </form>
+
+          <!-- User Profile Dropdown -->
+          <div class="dropdown text-end">
+            <a href="#" class="d-block link-body-emphasis text-decoration-none dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+              {% if user.profile.profile_picture %}
+                <img src="{{ user.profile.profile_picture.url }}" alt="Profile" width="32" height="32" class="rounded-circle">
+              {% else %}
+                <img src="{% static 'images/astro_helmet 1.svg' %}" alt="Default Profile Picture" width="32" height="32" class="rounded-circle">
+              {% endif %}
+            </a>
+            <!-- Dropdown Menu Items -->
+            <ul class="dropdown-menu text-small">
+              <li><a class="dropdown-item" href="{% url 'dashboard' %}">Main Dashboard</a></li>
+              <li><a class="dropdown-item" href="#">Settings</a></li>
+              <li><a class="dropdown-item" href="{% url 'profile_view' %}">Profile</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="{% url 'logout' %}">Sign out</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </header>
+{% endblock %}
+
+{% block content %}
+
+<!-- Sub-Community Dashboard Content Area -->
+<div class="space-container" style="height: 800px; position: relative;">
+
+  <!-- Left Sidebar Navigation -->
+  <div class="d-flex flex-column flex-shrink-0 p-3 text-bg-dark" style="width: 280px; z-index: 10; position: relative;">
+      
+      <!-- Sidebar Header with Parent Community Info -->
+      <div class="d-flex align-items-center mb-3 text-white text-decoration-none">
+        <div
+          class="community-indicator parent-community-indicator me-2"
+          data-color="{{ parent_community.color }}"
+          style="width: 20px; height: 20px; border-radius: 50%;"
+        ></div>
+        <span class="fs-4 parent-community-title" data-color="{{ parent_community.color }}">{{ parent_community.title }}</span>
+      </div>
+      <p class="text-muted small mb-3">{{ parent_community.description }}</p>
+      <hr />
+      
+      <!-- Sub-Communities Section -->
+      <p class="text-white mb-2">Sub-Communities</p>
+      {% if sub_communities %}
+        {% for community in sub_communities %}
+          <div class="d-flex align-items-center mb-2">
+            <div
+              class="community-indicator community-indicator-{{ community.id }} me-2"
+              data-color="{{ community.color }}"
+              style="width: 12px; height: 12px; border-radius: 50%;"
+            ></div>
+            <a href="/communities/{{ community.slug }}/" class="text-white text-decoration-none small">
+              {{ community.title }}
+              {% if community.id in user_memberships %}
+                <span class="badge bg-success ms-1">Joined</span>
+              {% endif %}
+            </a>
+          </div>
+        {% endfor %}
+      {% else %}
+        <p class="text-muted small">No sub-communities in this sector yet.</p>
+      {% endif %}
+
+      <!-- Navigation Links -->
+      <p class="mt-4">Navigation</p>
+      <ul class="nav nav-pills flex-column mb-auto">
+        <li class="nav-item">
+          <a href="{% url 'dashboard' %}" class="nav-link text-white">
+            <i class="fas fa-home me-2"></i>Main Dashboard
+          </a>
+        </li>
+        <li>
+          <a href="#" class="nav-link active">
+            <i class="fas fa-planet-ringed me-2"></i>{{ parent_community.title }} Sector
+          </a>
+        </li>
+      </ul>
+      
+      <!-- Join Community Button (if not member) -->
+      {% if user.id not in user_memberships %}
+        <button class="btn btn-outline-light d-flex align-items-center mt-3">
+          <i class="fas fa-plus me-2"></i>Join {{ parent_community.title }}
+        </button>
+      {% endif %}
+    </div>
+
+    <!-- Space Canvas Layers for Sub-Community Visualization -->
+    <!-- Background stars canvas -->
+    <canvas id="starsCanvas" style="position: absolute; top: 0; left: 0; z-index: 0; width: 100%; height: 800px;">
+    </canvas>
+    
+    <!-- Foreground planets canvas for sub-communities -->
+    <canvas id="planetsCanvas" style="position: absolute; top: 0; left: 0; z-index: 1; width: 100%; height: 800px; pointer-events: auto;">
+    </canvas>
+
+</div>
+
+<!-- JavaScript for Interactive Sub-Community Planet Visualization -->
+<script>
+  // Canvas elements
+  let starsCanvas, starsCtx, planetsCanvas, planetsCtx;
+  
+  function initializeCanvases() {
+    // Stars Canvas Setup (Background)
+    starsCanvas = document.getElementById("starsCanvas");
+    starsCtx = starsCanvas.getContext("2d");
+    
+    // Planets Canvas Setup (Foreground)
+    planetsCanvas = document.getElementById("planetsCanvas");
+    planetsCtx = planetsCanvas.getContext("2d");
+    
+    resizeCanvases();
+    
+    // Initialize star field
+    if (typeof initStarField === 'function' && starsCanvas) {
+      console.log('Initializing star field for sub-community dashboard...');
+      initStarField(starsCanvas);
+    }
+  }
+  
+  function resizeCanvases() {
+    if (!starsCanvas || !planetsCanvas) return;
+    
+    const width = window.innerWidth;
+    const height = 800;
+    
+    // Resize both canvases
+    starsCanvas.width = width;
+    starsCanvas.height = height;
+    planetsCanvas.width = width;
+    planetsCanvas.height = height;
+  }
+  
+  // Initialize when DOM is ready
+  document.addEventListener('DOMContentLoaded', function() {
+    initializeCanvases();
+    resizeCanvases();
+    window.addEventListener('resize', resizeCanvases);
+    loadSubCommunities();
+
+    // Apply dynamic colors for sidebar indicators and headings
+    document.querySelectorAll('.community-indicator[data-color]').forEach(indicator => {
+      const color = indicator.dataset.color;
+      if (!color) {
+        return;
+      }
+
+      indicator.style.background = color;
+      indicator.style.boxShadow = `0 0 10px ${color}`;
+    });
+
+    document.querySelectorAll('.parent-community-title[data-color]').forEach(title => {
+      const color = title.dataset.color;
+      if (color) {
+        title.style.color = color;
+      }
+    });
+    
+    // Handle planet clicks
+    planetsCanvas.addEventListener("click", (e) => {
+      console.log('Sub-community canvas clicked!');
+      const rect = planetsCanvas.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
+      console.log(`Click position: (${clickX}, ${clickY})`);
+      console.log(`Available sub-community planets: ${planets.length}`);
+
+      planets.forEach((planet, index) => {
+        const dx = clickX - planet.x;
+        const dy = clickY - planet.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        console.log(`Sub-Planet ${index} (${planet.title}): position (${planet.x}, ${planet.y}), distance: ${distance}, radius: ${planet.radius}`);
+        
+        if (distance < planet.radius + 18) {
+          console.log(`Clicked on sub-community: ${planet.title}`);
+          console.log(`Navigating to: ${planet.url}`);
+          // Navigate to the community detail page
+          window.location.href = planet.url;
+        }
+      });
+    });
+
+    // Handle planet hover effects for pointer cursor
+    planetsCanvas.addEventListener("mousemove", (e) => {
+      const rect = planetsCanvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      let isHovering = false;
+
+      planets.forEach(planet => {
+        const dx = mouseX - planet.x;
+        const dy = mouseY - planet.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        // Check if hovering over planet (including rings)
+        if (distance < planet.radius + 18) {
+          isHovering = true;
+        }
+      });
+
+      // Change cursor style based on hover state
+      planetsCanvas.style.cursor = isHovering ? 'pointer' : 'default';
+    });
+  });
+
+  // Load and initialize sub-community planets
+  function loadSubCommunities() {
+    let planetDataRaw = '{{ planet_data|safe }}';
+    let planetData = [];
+    
+    try {
+      if (planetDataRaw && planetDataRaw !== '[]' && planetDataRaw !== 'None') {
+        planetData = JSON.parse(planetDataRaw);
+      }
+    } catch (e) {
+      console.log('No planet data available:', e);
+      planetData = [];
+    }
+    
+    // Initialize planets array
+    planets = [];
+    
+    // Create planet objects from sub-community data
+    if (planetData && planetData.length > 0) {
+      planetData.forEach(data => {
+        planets.push(new Planet(data));
+      });
+    }
+    
+    // Start animation if we have planets
+    if (planets.length > 0) {
+      animate();
+    } else {
+      // Show a message if no sub-communities exist
+      showNoCommunitiesMessage();
+    }
+  }
+
+  let planets = [];
+
+  // Planet class for sub-community visualization
+  function Planet(data) {
+    const radius = 50; // Slightly larger for sub-communities
+    let x, y, dx, dy;
+    
+    // Generate random position with collision detection
+    let attempts = 0;
+    let validPosition = false;
+    
+    while (!validPosition && attempts < 50) {
+      x = Math.random() * (planetsCanvas.width - 2 * radius - 280) + radius + 280;
+      y = Math.random() * (planetsCanvas.height - 2 * radius) + radius;
+      
+      validPosition = true;
+      for (let planet of planets) {
+        const dx = x - planet.x;
+        const dy = y - planet.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        if (distance < radius + planet.radius + 30) { // More spacing for larger planets
+          validPosition = false;
+          break;
+        }
+      }
+      attempts++;
+    }
+    
+    if (!validPosition) {
+      x = Math.random() * (planetsCanvas.width - 2 * radius - 280) + radius + 280;
+      y = Math.random() * (planetsCanvas.height - 2 * radius) + radius;
+    }
+
+    // Slower movement for more peaceful feel
+    dx = (Math.random() - 0.5) * 0.3;
+    dy = (Math.random() - 0.5) * 0.3;
+
+    return {
+      id: data.id,
+      title: data.title,
+      slug: data.slug,
+      color: data.color,
+      is_member: data.is_member,
+      url: data.url,
+      x, y, dx, dy, radius
+    };
+  }
+
+  // Draw a single planet with modern flat styling and layered accents
+  function drawPlanet(planet) {
+    const baseColor = convertHSLToSolidRGB(adjustHSLLightness(planet.color, 8));
+    const horizonColor = convertHSLToSolidRGB(adjustHSLLightness(planet.color, -4));
+    const rimColor = convertHSLToSolidRGB(adjustHSLLightness(planet.color, -24));
+    const highlightColor = convertHSLToSolidRGB(adjustHSLLightness(planet.color, 26));
+    const accentColor = convertHSLToSolidRGB(adjustHSLLightness(planet.color, 12));
+
+    // Base with drop shadow
+    planetsCtx.save();
+    planetsCtx.shadowColor = "rgba(12, 14, 34, 0.28)";
+    planetsCtx.shadowBlur = 20;
+    planetsCtx.shadowOffsetY = 12;
+    planetsCtx.beginPath();
+    planetsCtx.arc(planet.x, planet.y, planet.radius, 0, Math.PI * 2);
+    planetsCtx.fillStyle = baseColor;
+    planetsCtx.fill();
+    planetsCtx.restore();
+
+    // Outline (member planets get accent color)
+    planetsCtx.beginPath();
+    planetsCtx.arc(planet.x, planet.y, planet.radius - 1, 0, Math.PI * 2);
+    planetsCtx.lineWidth = planet.is_member ? 4 : 2;
+    planetsCtx.strokeStyle = planet.is_member ? '#3ddc91' : rimColor;
+    planetsCtx.stroke();
+    planetsCtx.closePath();
+
+    // Horizon overlay
+    planetsCtx.save();
+    planetsCtx.beginPath();
+    planetsCtx.arc(planet.x, planet.y, planet.radius, 0, Math.PI * 2);
+    planetsCtx.clip();
+    planetsCtx.beginPath();
+    planetsCtx.arc(
+      planet.x,
+      planet.y + planet.radius * 0.26,
+      planet.radius * 1.08,
+      Math.PI * 1.05,
+      Math.PI * 1.95
+    );
+    planetsCtx.lineTo(planet.x + planet.radius * 1.2, planet.y + planet.radius * 1.1);
+    planetsCtx.lineTo(planet.x - planet.radius * 1.2, planet.y + planet.radius * 1.1);
+    planetsCtx.closePath();
+    planetsCtx.globalAlpha = 0.92;
+    planetsCtx.fillStyle = horizonColor;
+    planetsCtx.fill();
+    planetsCtx.restore();
+
+    // Accent band for motion
+    planetsCtx.save();
+    planetsCtx.beginPath();
+    planetsCtx.arc(planet.x, planet.y, planet.radius, 0, Math.PI * 2);
+    planetsCtx.clip();
+    planetsCtx.globalAlpha = 0.2;
+    planetsCtx.beginPath();
+    planetsCtx.ellipse(
+      planet.x,
+      planet.y - planet.radius * 0.28,
+      planet.radius * 0.98,
+      planet.radius * 0.4,
+      Math.PI / 12,
+      0,
+      Math.PI * 2
+    );
+    planetsCtx.fillStyle = accentColor;
+    planetsCtx.fill();
+    planetsCtx.restore();
+
+    // Highlight
+    planetsCtx.save();
+    planetsCtx.beginPath();
+    planetsCtx.arc(planet.x, planet.y, planet.radius, 0, Math.PI * 2);
+    planetsCtx.clip();
+    planetsCtx.globalAlpha = 0.5;
+    planetsCtx.beginPath();
+    planetsCtx.arc(
+      planet.x - planet.radius * 0.38,
+      planet.y - planet.radius * 0.44,
+      planet.radius * 0.34,
+      0,
+      Math.PI * 2
+    );
+    planetsCtx.fillStyle = highlightColor;
+    planetsCtx.fill();
+    planetsCtx.restore();
+
+    // Draw planet title
+    planetsCtx.fillStyle = "white";
+    planetsCtx.font = "bold 16px 'Segoe UI', sans-serif";
+    planetsCtx.textAlign = "center";
+    planetsCtx.shadowColor = "rgba(0, 0, 0, 0.9)";
+    planetsCtx.shadowBlur = 8;
+    planetsCtx.fillText(planet.title, planet.x, planet.y + 6);
+    
+    // Add member indicator
+    if (planet.is_member) {
+      planetsCtx.fillStyle = "#3ddc91";
+      planetsCtx.font = "12px 'Segoe UI', sans-serif";
+      planetsCtx.fillText("JOINED", planet.x, planet.y + 25);
+    }
+    
+    planetsCtx.shadowBlur = 0;
+  }
+
+  // Convert HSL color to solid RGB
+  function convertHSLToSolidRGB(hslColor) {
+    const hslMatch = hslColor.match(/hsl\(\s*([\d.]+)\s*,\s*([\d.]+)%\s*,\s*([\d.]+)%\s*\)/i);
+    if (!hslMatch) return hslColor;
+
+    const h = parseFloat(hslMatch[1]);
+    const s = parseFloat(hslMatch[2]) / 100;
+    const l = Math.min(0.85, parseFloat(hslMatch[3]) / 100);
+
+    const c = (1 - Math.abs(2 * l - 1)) * s;
+    const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+    const m = l - c / 2;
+
+    let r, g, b;
+    if (h < 60) { r = c; g = x; b = 0; }
+    else if (h < 120) { r = x; g = c; b = 0; }
+    else if (h < 180) { r = 0; g = c; b = x; }
+    else if (h < 240) { r = 0; g = x; b = c; }
+    else if (h < 300) { r = x; g = 0; b = c; }
+    else { r = c; g = 0; b = x; }
+
+    r = Math.round((r + m) * 255);
+    g = Math.round((g + m) * 255);
+    b = Math.round((b + m) * 255);
+
+    return `rgb(${r}, ${g}, ${b})`;
+  }
+
+  function adjustHSLLightness(hslColor, delta) {
+    const match = hslColor.match(/hsl\(\s*([\d.]+)\s*,\s*([\d.]+)%\s*,\s*([\d.]+)%\s*\)/i);
+    if (!match) return hslColor;
+
+    const h = parseFloat(match[1]);
+    const s = parseFloat(match[2]);
+    let l = parseFloat(match[3]);
+
+    l = Math.max(0, Math.min(100, l + delta));
+    return `hsl(${h}, ${s}%, ${l}%)`;
+  }
+
+  // Animation loop
+  function animate() {
+    if (!planetsCanvas || !planetsCtx) return;
+    
+    planetsCtx.clearRect(0, 0, planetsCanvas.width, planetsCanvas.height);
+    
+    for (let planet of planets) {
+      // Update position
+      planet.x += planet.dx;
+      planet.y += planet.dy;
+
+      // Bounce off walls
+      if (planet.x + planet.radius > planetsCanvas.width || planet.x - planet.radius < 280) {
+        planet.dx *= -1;
+      }
+      if (planet.y + planet.radius > planetsCanvas.height || planet.y - planet.radius < 0) {
+        planet.dy *= -1;
+      }
+
+      drawPlanet(planet);
+    }
+    requestAnimationFrame(animate);
+  }
+
+  // Handle planet clicks
+  planetsCanvas.addEventListener("click", (e) => {
+    console.log('Sub-community canvas clicked!');
+    const rect = planetsCanvas.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
+    console.log(`Click position: (${clickX}, ${clickY})`);
+    console.log(`Available sub-community planets: ${planets.length}`);
+
+    planets.forEach((planet, index) => {
+      const dx = clickX - planet.x;
+      const dy = clickY - planet.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      console.log(`Sub-Planet ${index} (${planet.title}): position (${planet.x}, ${planet.y}), distance: ${distance}, radius: ${planet.radius}`);
+      
+      if (distance < planet.radius + 18) {
+        console.log(`Clicked on sub-community: ${planet.title}`);
+        console.log(`Navigating to: ${planet.url}`);
+        // Navigate to the community detail page
+        window.location.href = planet.url;
+      }
+    });
+  });
+
+  // Handle planet hover effects for pointer cursor
+  planetsCanvas.addEventListener("mousemove", (e) => {
+    const rect = planetsCanvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    let isHovering = false;
+
+    planets.forEach(planet => {
+      const dx = mouseX - planet.x;
+      const dy = mouseY - planet.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      // Check if hovering over planet (including rings)
+      if (distance < planet.radius + 18) {
+        isHovering = true;
+      }
+    });
+
+    // Change cursor style based on hover state
+    planetsCanvas.style.cursor = isHovering ? 'pointer' : 'default';
+  });
+
+  // Show message when no communities exist
+  function showNoCommunitiesMessage() {
+    if (!planetsCtx) return;
+    
+    planetsCtx.fillStyle = "rgba(255, 255, 255, 0.7)";
+    planetsCtx.font = "24px 'Segoe UI', sans-serif";
+    planetsCtx.textAlign = "center";
+    planetsCtx.shadowColor = "rgba(0, 0, 0, 0.8)";
+    planetsCtx.shadowBlur = 4;
+    
+    const centerX = planetsCanvas.width / 2;
+    const centerY = planetsCanvas.height / 2;
+    
+    planetsCtx.fillText("No sub-communities in this sector yet.", centerX, centerY);
+    planetsCtx.font = "16px 'Segoe UI', sans-serif";
+    planetsCtx.fillText("Check back later for new communities to explore!", centerX, centerY + 40);
+    
+    planetsCtx.shadowBlur = 0;
+  }
+</script>
+
+<!-- External JavaScript for Space Background Animation -->
+<script src="{% static 'js/home.js' %}"></script>
+
+{% endblock %}

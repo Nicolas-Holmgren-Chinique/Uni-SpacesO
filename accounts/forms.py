@@ -50,6 +50,10 @@ class SignUpForm(UserCreationForm):
     # Email field - required for account creation
     email = forms.EmailField(
         required=True,
+        widget=forms.EmailInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Email'
+        }),
         help_text="Your email address will be used for account notifications."
     )
     
@@ -57,6 +61,10 @@ class SignUpForm(UserCreationForm):
     university = forms.CharField(
         max_length=100, 
         required=True,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'University'
+        }),
         help_text="The university you attend or attended."
     )
 
@@ -69,6 +77,22 @@ class SignUpForm(UserCreationForm):
         """
         model = User
         fields = ('username', 'email', 'password1', 'password2')
+        
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Add CSS classes to inherited fields
+        self.fields['username'].widget.attrs.update({
+            'class': 'form-control',
+            'placeholder': 'Username'
+        })
+        self.fields['password1'].widget.attrs.update({
+            'class': 'form-control',
+            'placeholder': 'Password'
+        })
+        self.fields['password2'].widget.attrs.update({
+            'class': 'form-control',
+            'placeholder': 'Confirm Password'
+        })
 
     def save(self, commit=True):
         """

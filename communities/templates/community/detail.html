@@ -1,1 +1,355 @@
+<!-- 
+Django Template: Community Detail Page
+
+This template displays the detailed view of a specific community where users
+can collaborate, ask questions, share work/homework, etc. This is where users
+land when they click on a sub-community planet.
+
+Key Features:
+- Community information display
+- Member status and join functionality
+- Space for future collaboration features (posts, discussions, etc.)
+- Breadcrumb navigation
+- Community-themed styling
+
+Template Structure:
+1. Header with breadcrumb navigation
+2. Community info section
+3. Main content area for collaboration (to be expanded)
+4. Sidebar with community details and actions
+
+Dependencies:
+- Bootstrap 5 for responsive layout
+- Community model data
+- User authentication status
+-->
+
 {% extends 'home/base.html' %}
+{% load static %}
+
+{% block title %}
+    {{ community.title }} - Community
+{% endblock %}
+
+{% block head %}
+    <!-- Community-specific CSS -->
+    <!-- Header Section with Navigation and Breadcrumbs -->
+    <header class="p-3 mb-3 border-bottom">
+      <!-- Logo Section -->
+      <div class="logo">
+        <a href="{% url 'home' %}">
+        <img src="{% static 'images/uni-spaces-only-logo.png' %}" alt="Logo" style="width: 100px; height: 100px;">
+        </a>
+      </div>
+
+      <!-- Main Navigation Container -->
+      <div class="container">
+        <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start">
+          <!-- Bootstrap icon placeholder -->
+          <a href="/" class="d-flex align-items-center mb-2 mb-lg-0 link-body-emphasis text-decoration-none">
+            <svg class="bi me-2" width="40" height="32" role="img" aria-label="Bootstrap"><use xlink:href="#bootstrap"/></svg>
+          </a>
+
+          <!-- Breadcrumb Navigation -->
+          <nav aria-label="breadcrumb" class="col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0">
+            <ol class="breadcrumb mb-0">
+              <li class="breadcrumb-item">
+                <a href="{% url 'dashboard' %}" class="link-body-emphasis text-decoration-none">
+                  <i class="fas fa-rocket me-1"></i>Main Dashboard
+                </a>
+              </li>
+              {% if community.parent %}
+              <li class="breadcrumb-item">
+                <a href="{% url 'community_dashboard' slug=community.parent.slug %}" class="link-body-emphasis text-decoration-none">
+                  <span class="parent-community-color" data-color="{{ community.parent.color }}">{{ community.parent.title }}</span> Sector
+                </a>
+              </li>
+              {% endif %}
+              <li class="breadcrumb-item active" aria-current="page">
+                <span class="community-color" data-color="{{ community.color }}">{{ community.title }}</span>
+              </li>
+            </ol>
+          </nav>
+
+          <!-- Search Form -->
+          <form class="col-12 col-lg-auto mb-3 mb-lg-0 me-lg-3" role="search">
+            <input type="search" class="form-control" placeholder="Search community..." aria-label="Search">
+          </form>
+
+          <!-- User Profile Dropdown -->
+          <div class="dropdown text-end">
+            <a href="#" class="d-block link-body-emphasis text-decoration-none dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+              {% if user.profile.profile_picture %}
+                <img src="{{ user.profile.profile_picture.url }}" alt="Profile" width="32" height="32" class="rounded-circle">
+              {% else %}
+                <img src="{% static 'images/astro_helmet 1.svg' %}" alt="Default Profile Picture" width="32" height="32" class="rounded-circle">
+              {% endif %}
+            </a>
+            <!-- Dropdown Menu Items -->
+            <ul class="dropdown-menu text-small">
+              <li><a class="dropdown-item" href="{% url 'dashboard' %}">Main Dashboard</a></li>
+              {% if community.parent %}
+                <li><a class="dropdown-item" href="{% url 'community_dashboard' slug=community.parent.slug %}">{{ community.parent.title }} Sector</a></li>
+              {% endif %}
+              <li><a class="dropdown-item" href="{% url 'profile_view' %}">Profile</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="{% url 'logout' %}">Sign out</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </header>
+{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid">
+  <div class="row">
+    
+    <!-- Main Content Area -->
+    <div class="col-md-9">
+      
+      <!-- Community Header -->
+  <div class="community-header p-4 rounded mb-4" data-community-color="{{ community.color }}">
+        <div class="d-flex align-items-center mb-3">
+          <div
+            class="community-indicator community-indicator-main me-3"
+            data-color="{{ community.color }}"
+            style="
+            width: 40px; 
+            height: 40px; 
+            border-radius: 50%;
+          "
+          ></div>
+          <div>
+            <h1 class="mb-1">{{ community.title }}</h1>
+            {% if community.parent %}
+              <p class="text-muted mb-0">
+                Part of <strong class="parent-community-color" data-color="{{ community.parent.color }}">{{ community.parent.title }}</strong>
+              </p>
+            {% endif %}
+          </div>
+        </div>
+        <p class="mb-0">{{ community.description }}</p>
+      </div>
+
+      <!-- Membership Status -->
+      <div class="alert {% if is_member %}alert-success{% else %}alert-info{% endif %} d-flex align-items-center justify-content-between">
+        <div>
+          {% if is_member %}
+            <i class="fas fa-check-circle me-2"></i>
+            You are a member of this community! Welcome aboard, space explorer.
+          {% else %}
+            <i class="fas fa-info-circle me-2"></i>
+            You're not yet a member of this community. Join to start collaborating!
+          {% endif %}
+        </div>
+        {% if can_join %}
+          <button class="btn btn-community text-white" data-color="{{ community.color }}">
+            <i class="fas fa-plus me-2"></i>Join Community
+          </button>
+        {% endif %}
+      </div>
+
+      <!-- Main Community Content Area -->
+      <div class="row">
+        
+        <!-- Posts/Discussions Section (Future Feature) -->
+        <div class="col-12 mb-4">
+          <div class="card">
+            <div class="card-header d-flex align-items-center justify-content-between">
+              <h5 class="mb-0">
+                <i class="fas fa-comments me-2 community-color" data-color="{{ community.color }}"></i>Discussions
+              </h5>
+              {% if is_member %}
+                <button class="btn btn-sm btn-community text-white" data-color="{{ community.color }}">
+                  <i class="fas fa-plus me-1"></i>New Post
+                </button>
+              {% endif %}
+            </div>
+            <div class="card-body text-center py-5">
+              <i class="fas fa-rocket fa-3x text-muted mb-3"></i>
+              <h6 class="text-muted">Discussion features coming soon!</h6>
+              <p class="text-muted small">
+                This is where community members will be able to ask questions, 
+                share homework, collaborate on projects, and help each other learn.
+              </p>
+              {% if not is_member %}
+                <p class="text-muted small">
+                  <strong>Join the community to participate in discussions when this feature launches.</strong>
+                </p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Study Resources Section (Future Feature) -->
+        <div class="col-md-6 mb-4">
+          <div class="card">
+            <div class="card-header">
+              <h6 class="mb-0">
+                <i class="fas fa-book me-2 community-color" data-color="{{ community.color }}"></i>Study Resources
+              </h6>
+            </div>
+            <div class="card-body text-center py-4">
+              <i class="fas fa-file-alt fa-2x text-muted mb-2"></i>
+              <p class="text-muted small mb-0">Shared study materials, notes, and resources</p>
+              <small class="text-muted">Coming soon</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Homework Help Section (Future Feature) -->
+        <div class="col-md-6 mb-4">
+          <div class="card">
+            <div class="card-header">
+              <h6 class="mb-0">
+                <i class="fas fa-question-circle me-2 community-color" data-color="{{ community.color }}"></i>Homework Help
+              </h6>
+            </div>
+            <div class="card-body text-center py-4">
+              <i class="fas fa-hands-helping fa-2x text-muted mb-2"></i>
+              <p class="text-muted small mb-0">Get help with assignments and projects</p>
+              <small class="text-muted">Coming soon</small>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-md-3">
+      
+      <!-- Community Info -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="mb-0">
+            <i class="fas fa-info-circle me-2"></i>Community Info
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <small class="text-muted">Created</small>
+            <p class="mb-0">{{ community.created_at|date:"F j, Y" }}</p>
+          </div>
+          {% if community.parent %}
+          <div class="mb-3">
+            <small class="text-muted">Parent Community</small>
+            <p class="mb-0">
+              <a href="{% url 'community_dashboard' slug=community.parent.slug %}" class="text-decoration-none">
+                <span class="parent-community-color" data-color="{{ community.parent.color }}">{{ community.parent.title }}</span>
+              </a>
+            </p>
+          </div>
+          {% endif %}
+          <div class="mb-3">
+            <small class="text-muted">Community Type</small>
+            <p class="mb-0">
+              {% if community.is_parent %}
+                <span class="badge bg-primary">Super Community</span>
+              {% else %}
+                <span class="badge bg-secondary">Sub-Community</span>
+              {% endif %}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="card">
+        <div class="card-header">
+          <h6 class="mb-0">
+            <i class="fas fa-bolt me-2"></i>Quick Actions
+          </h6>
+        </div>
+        <div class="card-body">
+          {% if is_member %}
+            <div class="d-grid gap-2">
+              <button class="btn btn-outline-primary btn-sm" disabled>
+                <i class="fas fa-plus me-2"></i>Create Post
+                <small class="d-block text-muted">Coming Soon</small>
+              </button>
+              <button class="btn btn-outline-secondary btn-sm" disabled>
+                <i class="fas fa-users me-2"></i>View Members
+                <small class="d-block text-muted">Coming Soon</small>
+              </button>
+            </div>
+          {% else %}
+            <div class="text-center">
+              <p class="text-muted small mb-3">Join this community to access all features</p>
+              <button class="btn btn-community text-white" data-color="{{ community.color }}">
+                <i class="fas fa-plus me-2"></i>Join Now
+              </button>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+    <script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const gradientOverlay = (color) => {
+      if (!color) {
+        return null;
+      }
+
+      // Create a simple translucent gradient using the provided color
+      return `linear-gradient(135deg, ${color} 0%, ${color} 60%)`;
+    };
+
+    document.querySelectorAll('.community-header[data-community-color]').forEach(header => {
+      const color = header.dataset.communityColor;
+      if (color) {
+        const gradient = gradientOverlay(color);
+        if (gradient) {
+          header.style.background = gradient;
+        } else {
+          header.style.background = color;
+        }
+        header.style.borderLeft = `4px solid ${color}`;
+      }
+    });
+
+    document.querySelectorAll('.community-indicator[data-color]').forEach(indicator => {
+      const color = indicator.dataset.color;
+      if (color) {
+        indicator.style.background = color;
+        indicator.style.boxShadow = `0 0 15px ${color}`;
+      }
+    });
+
+    document.querySelectorAll('.community-color[data-color]').forEach(element => {
+      const color = element.dataset.color;
+      if (color) {
+        element.style.color = color;
+      }
+    });
+
+    document.querySelectorAll('.parent-community-color[data-color]').forEach(element => {
+      const color = element.dataset.color;
+      if (color) {
+        element.style.color = color;
+      }
+    });
+
+    document.querySelectorAll('.btn-community[data-color]').forEach(button => {
+      const color = button.dataset.color;
+      if (color) {
+        button.style.backgroundColor = color;
+        button.style.borderColor = color;
+
+        button.addEventListener('mouseenter', () => {
+          button.style.filter = 'brightness(0.9)';
+        });
+        button.addEventListener('mouseleave', () => {
+          button.style.filter = '';
+        });
+      }
+    });
+  });
+</script>
+{% endblock %}

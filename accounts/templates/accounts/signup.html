@@ -22,43 +22,45 @@
 
                 <h1 class="h3 mb-3 fw-normal">Sign-Up</h1>
 
-                <!-- Profile Picture Upload -->
-                <!-- <div class="mb-3">
-                    <label for="profile_picture" class="form-label">Profile Picture</label>
-                    <div class="profile-picture-container">
-                        <img id="profile-picture-preview" src="{% static 'images/astro_helmet 1.svg' %}" alt="Profile Picture" class="rounded-circle" style="cursor: pointer; width: 50px; height: 50px; object-fit: cover;">
+                <!-- Display form errors if any -->
+                {% if form.errors %}
+                    <div class="alert alert-danger">
+                        {% for field, errors in form.errors.items %}
+                            {% for error in errors %}
+                                <div>{{ error }}</div>
+                            {% endfor %}
+                        {% endfor %}
                     </div>
-                    <input type="file" name="profile_picture" id="profile_picture" class="form-control d-none" accept="image/*" onchange="previewProfilePicture(event)">
-                </div> -->
-
-                <!-- Email Field -->
-                <div class="form-floating mb-3">
-                    <input type="email" name="email" id="email" class="form-control" placeholder="Email" required>
-                    <label for="email">Email</label>
-                </div>
+                {% endif %}
 
                 <!-- Username Field -->
                 <div class="form-floating mb-3">
-                    <input type="text" name="username" id="username" class="form-control" placeholder="Username" required>
-                    <label for="username">Username</label>
+                    {{ form.username }}
+                    <label for="{{ form.username.id_for_label }}">Username</label>
+                </div>
+
+                <!-- Email Field -->
+                <div class="form-floating mb-3">
+                    {{ form.email }}
+                    <label for="{{ form.email.id_for_label }}">Email</label>
                 </div>
 
                 <!-- Password Field -->
                 <div class="form-floating mb-3">
-                    <input type="password" name="password" id="password" class="form-control" placeholder="Password" required>
-                    <label for="password">Password</label>
+                    {{ form.password1 }}
+                    <label for="{{ form.password1.id_for_label }}">Password</label>
                 </div>
 
                 <!-- Confirm Password Field -->
                 <div class="form-floating mb-3">
-                    <input type="password" name="confirm_password" id="confirm_password" class="form-control" placeholder="Confirm Password" required>
-                    <label for="confirm_password">Confirm Password</label>
+                    {{ form.password2 }}
+                    <label for="{{ form.password2.id_for_label }}">Confirm Password</label>
                 </div>
 
-                <!-- Univeristy or college  -->
+                <!-- University Field -->
                 <div class="form-floating mb-3">
-                    <input type="text" name="university" id="university" class="form-control" placeholder="University">
-                    <label for="university">University</label>
+                    {{ form.university }}
+                    <label for="{{ form.university.id_for_label }}">University</label>
                 </div>
 
                 <!-- Submit Button -->

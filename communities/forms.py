@@ -148,9 +148,16 @@ class CommunityForm(forms.ModelForm):
 
         # Validation for super community creation
         if ctype == "super":
+            # For super communities, clear the parent field since it's not needed
+            cleaned_data['parent'] = None
+            
             if not cleaned_data.get("sub_title"):
                 self.add_error("sub_title", "Super communities must include an initial sub-community.")
             if not cleaned_data.get("sub_description"):
                 self.add_error("sub_description", "Please describe your initial sub-community.")
+        else:
+            # For sub communities, clear the sub-community fields since they're not needed
+            cleaned_data['sub_title'] = ''
+            cleaned_data['sub_description'] = ''
 
         return cleaned_data

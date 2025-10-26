@@ -1,7 +1,12 @@
 """
 Django Models for Community Management
 
-This module defines the data models for the community system in the UniSpaces
+This module defines the data models for the     # Color for space-themed visualization
+    color = models.CharField(
+        max_length=50, 
+        default=generate_random_color,
+        help_text="HSL color for the community planet in space visualization"
+    ),ity system in the UniSpaces
 social network platform. Communities are the core organizational units where
 users can gather around shared academic interests, subjects, or topics.
 
@@ -27,24 +32,27 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils.text import slugify
 
+CARTOON_COLOR_PALETTE = (
+    # Punchy warms
+    "hsl(12, 92%, 62%)",   # vibrant coral
+    "hsl(28, 92%, 64%)",   # orange sherbet
+    "hsl(332, 88%, 70%)",  # playful pink
+    # Bold cools
+    "hsl(210, 84%, 56%)",  # electric blue
+    "hsl(190, 82%, 66%)",  # aqua splash
+    "hsl(162, 74%, 58%)",  # tropical teal
+    # Friendly greens & yellows
+    "hsl(132, 67%, 60%)",  # lime zest
+    "hsl(48, 92%, 66%)",   # sunny gold
+    # Moody accents
+    "hsl(282, 72%, 68%)",  # dreamy violet
+    "hsl(352, 78%, 62%)",  # ruby red
+)
 
 
 def generate_random_color():
-    """
-    Generate a random HSL color for community planet visualization
-    
-    This function creates a random color in HSL format that will be used
-    to color the community "planets" in the space-themed dashboard interface.
-    HSL is used to ensure colors are vibrant and visually appealing.
-    
-    Returns:
-        str: HSL color string in format "hsl(hue, saturation%, lightness%)"
-        
-    Note: This function currently has a bug - it returns a string with 
-    "random.randint(0, 360)" rather than actually generating a random number.
-    It should be: return f"hsl({random.randint(0, 360)}, 80%, 60%)"
-    """
-    return f"hsl(random.randint(0, 360), 80%, 60%)"
+    """Return a playful HSL color suited for cartoon planets."""
+    return random.choice(CARTOON_COLOR_PALETTE)
 
 class Community(models.Model):
     """
@@ -91,7 +99,7 @@ class Community(models.Model):
     
     # Color for space-themed visualization
     color = models.CharField(
-        max_length=20, 
+        max_length=50, 
         default=generate_random_color,
         help_text="HSL color for the community planet in space visualization"
     )

@@ -125,35 +125,49 @@ WSGI_APPLICATION = "unispaces.wsgi.application"
 
 # Database Configuration
 # =====================
-# Currently using PostgreSQL for production, SQLite fallback available
+# Dynamic configuration for both local development and Docker deployment
 
-# Production PostgreSQL Database (Docker environment)
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'unispaces_db',
-        'USER': 'unispaces_user',
-        'PASSWORD': 'Ya<PXE+r&)tM?@gVfy4pUZJw?S*.+An<',
-        'HOST': os.environ.get('DB_HOST', 'db'),  # Docker service name for database
-        'PORT': '5432',
+# Check if running in Docker (environment variable set in docker-compose)
+RUNNING_IN_DOCKER = os.environ.get('DB_HOST') == 'db'
+
+if RUNNING_IN_DOCKER:
+    # Docker PostgreSQL Database (from docker-compose.yml environment variables)
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.environ.get('POSTGRES_DB', 'postgres'),
+            "USER": os.environ.get('POSTGRES_USER', 'postgres'),
+            "PASSWORD": os.environ.get('POSTGRES_PASSWORD', '6XBMpuS^;xAt&*)]:F)e0^H%R&Vpm&sj'),
+            "HOST": os.environ.get('DB_HOST', 'db'),  # Docker service name
+            "PORT": os.environ.get('DB_PORT', '5432'),
+        }
     }
-}
+else:
+    # Local Development PostgreSQL Database (Direct connection to Docker container)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': 'postgres',  # From docker-compose.yml
+            'USER': 'postgres',  # From docker-compose.yml
+            'PASSWORD': '6XBMpuS^;xAt&*)]:F)e0^H%R&Vpm&sj',  # From docker-compose.yml
+            'HOST': 'localhost',  # localhost for direct connection to Docker container
+            'PORT': '5432',
+        }
+    }
 
-# Alternative PostgreSQL configuration using environment variables
-# This configuration is commented out but available for Docker deployments
+# Alternative PostgreSQL configuration using environment variables from docker-compose
 # DATABASES = {
 #     "default": {
 #         "ENGINE": "django.db.backends.postgresql",
-#         "NAME": os.environ.get('POSTGRES_DB'),
-#         "USER": os.environ.get('POSTGRES_USER'),
-#         "PASSWORD": os.environ.get('POSTGRES_PASSWORD'),
-#         "HOST": os.environ.get('DB_HOST', 'db'),  # Set in docker-compose file
-#         "PORT": os.environ.get('DB_PORT', '5432'),  # Set in docker-compose file
+#         "NAME": os.environ.get('POSTGRES_DB', 'postgres'),
+#         "USER": os.environ.get('POSTGRES_USER', 'postgres'),
+#         "PASSWORD": os.environ.get('POSTGRES_PASSWORD', '6XBMpuS^;xAt&*)]:F)e0^H%R&Vpm&sj'),
+#         "HOST": os.environ.get('DB_HOST', 'localhost'),  # localhost for direct connection
+#         "PORT": os.environ.get('DB_PORT', '5432'),
 #     }
 # }
 
-# SQLite Database (Development fallback)
-# Uncomment this section and comment out PostgreSQL for local development
+# SQLite Database (Development fallback) - Currently Commented Out
 # DATABASES = {
 #     "default": {
 #         "ENGINE": "django.db.backends.sqlite3",

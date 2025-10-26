@@ -32,9 +32,11 @@ Dependencies:
 {% endblock %}
 
 {% block head %}
-    <!-- Dashboard-specific CSS for space theming and layout -->
-    <link rel="stylesheet" href="{% static 'accounts/css/dashboard.css' %}">
-    
+  <!-- Dashboard-specific CSS for space theming and layout -->
+  <link rel="stylesheet" href="{% static 'accounts/css/dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
     <!-- Header Section with Navigation -->
     <header class="p-3 mb-3 border-bottom">
       <!-- Logo Section - Links to home page -->
@@ -90,10 +92,6 @@ Dependencies:
         </div>
       </div>
     </header>
-{% endblock %}
-
-
-{% block content %}
 
 <!-- Main Dashboard Content Area -->
 <!-- Space-themed container with sidebar navigation and interactive canvas -->
@@ -111,11 +109,27 @@ Dependencies:
       <hr />
       
       <!-- User's Communities Section -->
-      <p>Your communities</p>
-      <!-- Static community links (these should be dynamically generated from user's communities) -->
-      <a href="google.com"><ul>Calculus</ul></a>
-      <ul>Civil Engineering</ul>
-      <ul>Computer Science</ul>
+      <p class="text-white mb-2">Your Communities</p>
+      <!-- Dynamic community links generated from user's communities -->
+      {% if user_communities %}
+        {% for community in user_communities %}
+          <div class="d-flex align-items-center mb-2">
+            <div
+              class="community-indicator community-indicator-{{ community.id }} me-2"
+              data-color="{{ community.color }}"
+              style="width: 12px; height: 12px; border-radius: 50%;"
+            ></div>
+            <a href="/communities/{{ community.slug }}/" class="text-white text-decoration-none small">
+              {{ community.title }}
+              {% if community.parent %}
+                <span class="text-muted">({{ community.parent.title }})</span>
+              {% endif %}
+            </a>
+          </div>
+        {% endfor %}
+      {% else %}
+        <p class="text-muted small">No communities yet. Create your first one!</p>
+      {% endif %}
 
       <!-- Hyperlanes Section (Navigation shortcuts) -->
       <p>Hyperlanes</p>
@@ -140,115 +154,755 @@ Dependencies:
       </ul>
       
       <!-- Community Creation Button -->
-      <button class="btn btn-primary d-flex align-items-center">
-        <a href="{% url 'create_community' %}" class="text-white text-decoration-none"> + Create Community</a>
+      <!-- Modal trigger button with space-themed styling -->
+      <button class="btn btn-primary d-flex align-items-center" data-bs-toggle="modal" data-bs-target="#createCommunityModal">
+        + Create Community
       </button>
     </div>
 
-    <!-- Space Canvas for Community Visualization -->
-    <!-- HTML5 Canvas element for rendering floating community planets -->
-    <!-- Positioned absolutely to cover the main content area behind the sidebar -->
-    <canvas style="position: absolute; top: 0; left: 0; z-index: 0;">
-      <!-- Canvas content is drawn dynamically via JavaScript -->
+    <!-- Space Canvas Layers for Community Visualization -->
+    <!-- Background stars canvas -->
+    <canvas id="starsCanvas" style="position: absolute; top: 0; left: 0; z-index: 0; width: 100%; height: 800px;">
+      <!-- Stars background animation -->
     </canvas>
-    <!-- 
-    JavaScript for Interactive Community Planet Visualization
     
-    This commented-out code demonstrates how to create floating, interactive
-    community "planets" on the canvas. Each community becomes a colored circle
-    that floats around the space, never overlapping with other planets.
-    
-    Features:
-    - Dynamic planet generation from Django community data
-    - Collision detection to prevent overlap
-    - Smooth animation with bounce physics
-    - Click detection for navigation to community pages
-    - Responsive sizing and positioning
-    
-    The code is currently commented out but can be enabled for the full
-    space visualization experience.
-    -->
-    <!-- <script>
-  const canvas = document.querySelector("canvas");
-  const ctx = canvas.getContext("2d");
-  canvas.width = window.innerWidth;
-  canvas.height = 800;
+    <!-- Foreground planets canvas -->
+    <canvas id="planetsCanvas" style="position: absolute; top: 0; left: 0; z-index: 1; width: 100%; height: 800px; pointer-events: auto;">
+      <!-- Community planets drawn dynamically via JavaScript -->
+    </canvas>
 
-  // Get community data from Django template (passed as JSON)
-  const planets = JSON.parse('{{ planet_data|safe }}');
+    <!-- Create Community Modal -->
+    <!-- Bootstrap modal popup for community creation with slide toggle -->
+    <div class="modal fade" id="createCommunityModal" tabindex="-1" aria-labelledby="createCommunityModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: white;">
+          <div class="modal-header border-0">
+            <h5 class="modal-title" id="createCommunityModalLabel">
+              <i class="fas fa-plus-circle me-2"></i>Create a New Community
+            </h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <!-- Community Type Toggle Switch -->
+            <div class="row mb-4">
+              <div class="col-12 text-center">
+                <label class="form-label mb-3">Community Type</label>
+                <div class="toggle-container d-flex align-items-center justify-content-center">
+                  <span class="toggle-label me-3">Sub Community</span>
+                  <div class="toggle-switch">
+                    <input type="checkbox" id="communityTypeToggle" class="toggle-input">
+                    <label for="communityTypeToggle" class="toggle-slider"></label>
+                  </div>
+                  <span class="toggle-label ms-3">Super Community</span>
+                </div>
+                <small class="form-text text-muted mt-2">
+                  <span id="toggleHelpText">Sub communities belong to a parent community</span>
+                </small>
+              </div>
+            </div>
 
-  function Planet(planetData) {
-    const radius = 45;
-    let x, y, dx, dy;
-    
-    // Generate random position (collision detection would go here)
-    do {
-      x = Math.random() * (canvas.width - 2 * radius) + radius;
-      y = Math.random() * (canvas.height - 2 * radius) + radius;
-    } while (false); // Add collision logic later
+            <!-- Community Creation Form -->
+            <form id="createCommunityForm" method="POST" action="{% url 'create_community' %}">
+              {% csrf_token %}
+              <input type="hidden" id="community_type" name="community_type" value="sub">
 
-    // Random velocity for movement
-    dx = (Math.random() - 0.5) * 0.3;
-    dy = (Math.random() - 0.5) * 0.3;
+              <!-- Community Name -->
+              <div class="mb-3">
+                <label for="title" class="form-label">Community Name</label>
+                <input type="text" class="form-control" id="title" name="title" required>
+                <div class="invalid-feedback" id="titleError"></div>
+              </div>
 
-    return {
-      ...planetData,
-      x, y, dx, dy, radius
-    };
-  }
+              <!-- Community Description -->
+              <div class="mb-3">
+                <label for="description" class="form-label">Description</label>
+                <textarea class="form-control" id="description" name="description" rows="3" required></textarea>
+                <div class="invalid-feedback" id="descriptionError"></div>
+              </div>
 
-  // Create planet objects from community data
-  const planetObjects = planets.map(p => Planet(p));
+              <!-- Parent Community Selection (for Sub Communities) -->
+              <div class="mb-3" id="parentSection">
+                <label for="parent" class="form-label">Parent Community</label>
+                <select class="form-select" id="parent" name="parent">
+                  <option value="">Select a parent community...</option>
+                  {% for community in super_communities %}
+                    <option value="{{ community.id }}">{{ community.title }}</option>
+                  {% endfor %}
+                </select>
+                <div class="invalid-feedback" id="parentError"></div>
+              </div>
 
-  function drawPlanet(p) {
-    // Draw planet circle
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-    ctx.fillStyle = p.color;
-    ctx.fill();
-    ctx.closePath();
+              <!-- Initial Sub-Community Fields (for Super Communities) -->
+              <div id="subCommunitySection" style="display: none;">
+                <h6 class="mb-3">Initial Sub-Community</h6>
+                <div class="mb-3">
+                  <label for="sub_title" class="form-label">Sub-Community Name</label>
+                  <input type="text" class="form-control" id="sub_title" name="sub_title">
+                  <div class="invalid-feedback" id="subTitleError"></div>
+                </div>
+                <div class="mb-3">
+                  <label for="sub_description" class="form-label">Sub-Community Description</label>
+                  <textarea class="form-control" id="sub_description" name="sub_description" rows="2"></textarea>
+                  <div class="invalid-feedback" id="subDescriptionError"></div>
+                </div>
+              </div>
 
-    // Draw planet label
-    ctx.fillStyle = "white";
-    ctx.font = "bold 14px Onest, sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText(p.name, p.x, p.y + 5);
-  }
+              <!-- Form Actions -->
+              <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary">
+                  <span id="submitButtonText">Create Sub-Community</span>
+                  <i class="fas fa-rocket ms-2"></i>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
 
-  function animate() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    for (let p of planetObjects) {
-      // Update position
-      p.x += p.dx;
-      p.y += p.dy;
-
-      // Bounce off walls
-      if (p.x + p.radius > canvas.width || p.x - p.radius < 0) p.dx *= -1;
-      if (p.y + p.radius > canvas.height || p.y - p.radius < 0) p.dy *= -1;
-
-      drawPlanet(p);
-    }
-    requestAnimationFrame(animate);
-  }
-
-  // Handle planet clicks for navigation
-  canvas.addEventListener("click", (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const clickY = e.clientY - rect.top;
-
-    planetObjects.forEach(p => {
-      const dx = clickX - p.x;
-      const dy = clickY - p.y;
-      if (Math.sqrt(dx * dx + dy * dy) < p.radius) {
-        window.location.href = p.url;
+    <!-- JavaScript for Interactive Community Planet Visualization -->
+    <script>
+      // Canvas elements
+      let starsCanvas, starsCtx, planetsCanvas, planetsCtx;
+      
+      function initializeCanvases() {
+        // Stars Canvas Setup (Background)
+        starsCanvas = document.getElementById("starsCanvas");
+        starsCtx = starsCanvas.getContext("2d");
+        
+        // Planets Canvas Setup (Foreground)
+        planetsCanvas = document.getElementById("planetsCanvas");
+        planetsCtx = planetsCanvas.getContext("2d");
+        
+        resizeCanvases();
+        
+        // Initialize star field if function is available
+        if (typeof initStarField === 'function' && starsCanvas) {
+          console.log('Initializing star field...');
+          initStarField(starsCanvas);
+        } else {
+          console.warn('Star field initialization failed - function not available');
+        }
       }
-    });
-  });
+      
+      function resizeCanvases() {
+        if (!starsCanvas || !planetsCanvas) return;
+        
+        const width = window.innerWidth;
+        const height = 800;
+        
+        // Resize stars canvas
+        starsCanvas.width = width;
+        starsCanvas.height = height;
+        
+        // Resize planets canvas
+        planetsCanvas.width = width;
+        planetsCanvas.height = height;
+      }
+      
+      // Initialize when DOM is ready
+      document.addEventListener('DOMContentLoaded', function() {
+        initializeCanvases();
+        resizeCanvases();
+        window.addEventListener('resize', resizeCanvases);
+        loadCommunities();
 
-  animate();
-</script> -->
+        // Apply dynamic colors to community indicators in the sidebar
+        document.querySelectorAll('.community-indicator[data-color]').forEach(indicator => {
+          const color = indicator.dataset.color;
+          if (!color) {
+            return;
+          }
+
+          indicator.style.background = color;
+          indicator.style.boxShadow = `0 0 8px ${color}`;
+        });
+        
+        // Handle planet clicks for community navigation
+        planetsCanvas.addEventListener("click", (e) => {
+          console.log('Canvas clicked!');
+          const rect = planetsCanvas.getBoundingClientRect();
+          const clickX = e.clientX - rect.left;
+          const clickY = e.clientY - rect.top;
+          console.log(`Click position: (${clickX}, ${clickY})`);
+          console.log(`Available planets: ${planets.length}`);
+
+          planets.forEach((planet, index) => {
+            const dx = clickX - planet.x;
+            const dy = clickY - planet.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            console.log(`Planet ${index} (${planet.title}): position (${planet.x}, ${planet.y}), distance: ${distance}, radius: ${planet.radius}`);
+            
+            // Include rings in click area (outer ring + some padding)
+            if (distance < planet.radius + 15) {
+              console.log(`Clicked on super community: ${planet.title}`);
+              
+              // Since dashboard only shows super communities, navigate to sub-community dashboard
+              window.location.href = `/communities/${planet.slug}/dashboard/`;
+            }
+          });
+        });
+
+        // Handle planet hover effects for pointer cursor
+        planetsCanvas.addEventListener("mousemove", (e) => {
+          const rect = planetsCanvas.getBoundingClientRect();
+          const mouseX = e.clientX - rect.left;
+          const mouseY = e.clientY - rect.top;
+          let isHovering = false;
+
+          planets.forEach(planet => {
+            const dx = mouseX - planet.x;
+            const dy = mouseY - planet.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            // Check if hovering over planet (including rings)
+            if (distance < planet.radius + 15) {
+              isHovering = true;
+            }
+          });
+
+          // Change cursor style based on hover state
+          planetsCanvas.style.cursor = isHovering ? 'pointer' : 'default';
+        });
+      });
+
+      // Load and initialize community planets
+      function loadCommunities() {
+        // Get community data from Django template (passed as JSON)
+        // Handle empty or malformed data gracefully
+        let planetDataRaw = '{{ planet_data|safe }}';
+        let planetData = [];
+        
+        console.log('Raw planet data:', planetDataRaw);
+        
+        try {
+          if (planetDataRaw && planetDataRaw !== '[]' && planetDataRaw !== 'None') {
+            planetData = JSON.parse(planetDataRaw);
+            console.log('Parsed planet data:', planetData);
+          }
+        } catch (e) {
+          console.log('No planet data available or invalid format:', e);
+          planetData = [];
+        }
+        
+        // Initialize planets array
+        planets = [];
+        
+        // Create planet objects from data
+        if (planetData && planetData.length > 0) {
+          console.log(`Creating ${planetData.length} planets`);
+          planetData.forEach(data => {
+            console.log('Creating planet for:', data.title);
+            planets.push(new Planet(data));
+          });
+        } else {
+          console.log('No planet data to create planets from');
+        }
+        
+        console.log('Total planets created:', planets.length);
+        
+        // Start planet animation if we have planets
+        if (planets.length > 0) {
+          animate();
+        }
+      }
+
+      // Get community data from Django template (passed as JSON)
+      // Handle empty or malformed data gracefully
+      let planetDataRaw = '{{ planet_data|safe }}';
+      let planetData = [];
+      
+      try {
+        if (planetDataRaw && planetDataRaw !== '[]' && planetDataRaw !== 'None') {
+          planetData = JSON.parse(planetDataRaw);
+        }
+      } catch (e) {
+        console.log('No planet data available or invalid format:', e);
+        planetData = [];
+      }
+      
+      let planets = [];
+
+      // Planet class for community visualization
+      function Planet(data) {
+        const radius = 45;
+        let x, y, dx, dy;
+        
+        // Generate random position with collision detection
+        let attempts = 0;
+        let validPosition = false;
+        
+        while (!validPosition && attempts < 50) {
+          x = Math.random() * (planetsCanvas.width - 2 * radius - 280) + radius + 280; // Account for sidebar
+          y = Math.random() * (planetsCanvas.height - 2 * radius) + radius;
+          
+          validPosition = true;
+          for (let planet of planets) {
+            const dx = x - planet.x;
+            const dy = y - planet.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance < radius + planet.radius + 20) { // 20px minimum spacing
+              validPosition = false;
+              break;
+            }
+          }
+          attempts++;
+        }
+        
+        if (!validPosition) {
+          // Fallback to random position if collision detection fails
+          x = Math.random() * (planetsCanvas.width - 2 * radius - 280) + radius + 280;
+          y = Math.random() * (planetsCanvas.height - 2 * radius) + radius;
+        }
+
+        // Random velocity for gentle floating movement
+        dx = (Math.random() - 0.5) * 0.5;
+        dy = (Math.random() - 0.5) * 0.5;
+
+        return {
+          id: data.id,
+          title: data.title,
+          slug: data.slug,
+          color: data.color,
+          x, y, dx, dy, radius
+        };
+      }
+
+      // Create planet objects from community data
+      function initializePlanets() {
+        planets = planetData.map(p => Planet(p));
+      }
+
+      // Draw a single planet with modern flat styling and layered accents
+      function drawPlanet(planet) {
+        const baseColor = convertHSLToSolidRGB(adjustHSLLightness(planet.color, 6));
+        const horizonColor = convertHSLToSolidRGB(adjustHSLLightness(planet.color, -6));
+        const rimColor = convertHSLToSolidRGB(adjustHSLLightness(planet.color, -22));
+        const highlightColor = convertHSLToSolidRGB(adjustHSLLightness(planet.color, 24));
+        const accentColor = convertHSLToSolidRGB(adjustHSLLightness(planet.color, 12));
+
+        // Base planet with soft drop shadow
+        planetsCtx.save();
+        planetsCtx.shadowColor = "rgba(12, 14, 34, 0.25)";
+        planetsCtx.shadowBlur = 18;
+        planetsCtx.shadowOffsetY = 10;
+        planetsCtx.beginPath();
+        planetsCtx.arc(planet.x, planet.y, planet.radius, 0, Math.PI * 2);
+        planetsCtx.fillStyle = baseColor;
+        planetsCtx.fill();
+        planetsCtx.restore();
+
+        // Clean rim stroke
+        planetsCtx.beginPath();
+        planetsCtx.arc(planet.x, planet.y, planet.radius - 1, 0, Math.PI * 2);
+        planetsCtx.lineWidth = 2;
+        planetsCtx.strokeStyle = rimColor;
+        planetsCtx.stroke();
+        planetsCtx.closePath();
+
+        // Horizon overlay for depth
+        planetsCtx.save();
+        planetsCtx.beginPath();
+        planetsCtx.arc(planet.x, planet.y, planet.radius, 0, Math.PI * 2);
+        planetsCtx.clip();
+        planetsCtx.beginPath();
+        planetsCtx.arc(
+          planet.x,
+          planet.y + planet.radius * 0.28,
+          planet.radius * 1.05,
+          Math.PI * 1.05,
+          Math.PI * 1.95
+        );
+        planetsCtx.lineTo(planet.x + planet.radius * 1.2, planet.y + planet.radius);
+        planetsCtx.lineTo(planet.x - planet.radius * 1.2, planet.y + planet.radius);
+        planetsCtx.closePath();
+        planetsCtx.fillStyle = horizonColor;
+        planetsCtx.globalAlpha = 0.9;
+        planetsCtx.fill();
+        planetsCtx.restore();
+
+        // Accent band across surface
+        planetsCtx.save();
+        planetsCtx.beginPath();
+        planetsCtx.arc(planet.x, planet.y, planet.radius, 0, Math.PI * 2);
+        planetsCtx.clip();
+        planetsCtx.globalAlpha = 0.22;
+        planetsCtx.beginPath();
+        planetsCtx.ellipse(
+          planet.x,
+          planet.y - planet.radius * 0.25,
+          planet.radius * 0.95,
+          planet.radius * 0.38,
+          Math.PI / 10,
+          0,
+          Math.PI * 2
+        );
+        planetsCtx.fillStyle = accentColor;
+        planetsCtx.fill();
+        planetsCtx.restore();
+
+        // Minimal highlight for polish
+        planetsCtx.save();
+        planetsCtx.beginPath();
+        planetsCtx.arc(planet.x, planet.y, planet.radius, 0, Math.PI * 2);
+        planetsCtx.clip();
+        planetsCtx.globalAlpha = 0.55;
+        planetsCtx.beginPath();
+        planetsCtx.arc(
+          planet.x - planet.radius * 0.4,
+          planet.y - planet.radius * 0.45,
+          planet.radius * 0.35,
+          0,
+          Math.PI * 2
+        );
+        planetsCtx.fillStyle = highlightColor;
+        planetsCtx.fill();
+        planetsCtx.restore();
+
+        // Label
+        planetsCtx.fillStyle = "white";
+        planetsCtx.font = "bold 14px 'Segoe UI', sans-serif";
+        planetsCtx.textAlign = "center";
+        planetsCtx.shadowColor = "rgba(0, 0, 0, 0.8)";
+        planetsCtx.shadowBlur = 6;
+        planetsCtx.fillText(planet.title, planet.x, planet.y + 5);
+        planetsCtx.shadowBlur = 0;
+      }
+
+      // Helper to adjust lightness of an HSL color while preserving hue/saturation
+      function adjustHSLLightness(hslColor, delta) {
+        const match = hslColor.match(/hsl\(\s*([\d.]+)\s*,\s*([\d.]+)%\s*,\s*([\d.]+)%\s*\)/i);
+        if (!match) return hslColor;
+
+        const h = parseFloat(match[1]);
+        const s = parseFloat(match[2]);
+        let l = parseFloat(match[3]);
+
+        l = Math.max(0, Math.min(100, l + delta));
+        return `hsl(${h}, ${s}%, ${l}%)`;
+      }
+
+      // Convert HSL color to solid RGB for cartoonish appearance
+      function convertHSLToSolidRGB(hslColor) {
+        // Extract HSL values from string like "hsl(240, 80%, 60%)"
+  const hslMatch = hslColor.match(/hsl\(\s*([\d.]+)\s*,\s*([\d.]+)%\s*,\s*([\d.]+)%\s*\)/i);
+        if (!hslMatch) return hslColor; // Return original if can't parse
+        
+  const h = parseFloat(hslMatch[1]);
+  const s = parseFloat(hslMatch[2]) / 100;
+  const l = Math.min(0.85, parseFloat(hslMatch[3]) / 100); // Cap lightness for more solid colors
+        
+        // Convert HSL to RGB
+        const c = (1 - Math.abs(2 * l - 1)) * s;
+        const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+        const m = l - c / 2;
+        
+        let r, g, b;
+        if (h < 60) { r = c; g = x; b = 0; }
+        else if (h < 120) { r = x; g = c; b = 0; }
+        else if (h < 180) { r = 0; g = c; b = x; }
+        else if (h < 240) { r = 0; g = x; b = c; }
+        else if (h < 300) { r = x; g = 0; b = c; }
+        else { r = c; g = 0; b = x; }
+        
+        r = Math.round((r + m) * 255);
+        g = Math.round((g + m) * 255);
+        b = Math.round((b + m) * 255);
+        
+        return `rgb(${r}, ${g}, ${b})`;
+      }
+
+      // Animation loop for planets
+      function animate() {
+        if (!planetsCanvas || !planetsCtx) return;
+        
+        planetsCtx.clearRect(0, 0, planetsCanvas.width, planetsCanvas.height);
+        
+        for (let planet of planets) {
+          // Update position
+          planet.x += planet.dx;
+          planet.y += planet.dy;
+
+          // Bounce off walls (account for sidebar)
+          if (planet.x + planet.radius > planetsCanvas.width || planet.x - planet.radius < 280) {
+            planet.dx *= -1;
+          }
+          if (planet.y + planet.radius > planetsCanvas.height || planet.y - planet.radius < 0) {
+            planet.dy *= -1;
+          }
+
+          drawPlanet(planet);
+        }
+        requestAnimationFrame(animate);
+      }
+    </script>
+
+    <!-- Community Creation Modal JavaScript -->
+    <script>
+      // Modal toggle functionality
+      const toggle = document.getElementById('communityTypeToggle');
+      const communityTypeInput = document.getElementById('community_type');
+      const parentSection = document.getElementById('parentSection');
+      const subCommunitySection = document.getElementById('subCommunitySection');
+      const toggleHelpText = document.getElementById('toggleHelpText');
+      const submitButtonText = document.getElementById('submitButtonText');
+
+      // Initialize form state
+      function initializeFormState() {
+        const isSuper = toggle.checked;
+        
+        // Update hidden input
+        communityTypeInput.value = isSuper ? 'super' : 'sub';
+        
+        // Show/hide sections
+        parentSection.style.display = isSuper ? 'none' : 'block';
+        subCommunitySection.style.display = isSuper ? 'block' : 'none';
+        
+        // Enable/disable fields based on community type
+        const subTitleField = document.getElementById('sub_title');
+        const subDescriptionField = document.getElementById('sub_description');
+        const parentField = document.getElementById('parent');
+        
+        if (isSuper) {
+          subTitleField.disabled = false;
+          subDescriptionField.disabled = false;
+          parentField.disabled = true;
+        } else {
+          subTitleField.disabled = true;
+          subDescriptionField.disabled = true;
+          subTitleField.value = '';
+          subDescriptionField.value = '';
+          parentField.disabled = false;
+        }
+        
+        // Update help text and button
+        toggleHelpText.textContent = isSuper 
+          ? 'Super communities are top-level communities that contain sub-communities'
+          : 'Sub communities belong to a parent community';
+        submitButtonText.textContent = isSuper ? 'Create Super Community' : 'Create Sub-Community';
+      }
+
+      // Initialize on page load
+      initializeFormState();
+
+      // Handle toggle switch changes
+      toggle.addEventListener('change', function() {
+        initializeFormState();
+        
+        // Clear form errors
+        clearFormErrors();
+      });
+
+      // Form submission with AJAX
+      document.getElementById('createCommunityForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const submitButton = this.querySelector('button[type="submit"]');
+        const originalText = submitButton.innerHTML;
+        
+        // Show loading state
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creating...';
+        
+        // Clear previous errors
+        clearFormErrors();
+        
+        fetch(this.action, {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            // Close modal
+            bootstrap.Modal.getInstance(document.getElementById('createCommunityModal')).hide();
+            
+            // Reset form
+            this.reset();
+            toggle.checked = false;
+            initializeFormState();
+            
+            // Show success message
+            showSuccessMessage('Community created successfully! Your new planet is now floating in space.');
+            
+            // Reload page to show new community
+            setTimeout(() => {
+              window.location.reload();
+            }, 1500);
+          } else {
+            // Display form errors
+            displayFormErrors(data.errors);
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          showErrorMessage('An error occurred while creating the community. Please try again.');
+        })
+        .finally(() => {
+          // Restore button state
+          submitButton.disabled = false;
+          submitButton.innerHTML = originalText;
+        });
+      });
+
+      // Helper functions
+      function clearFormErrors() {
+        const errorElements = document.querySelectorAll('.invalid-feedback');
+        const inputElements = document.querySelectorAll('.form-control, .form-select');
+        
+        errorElements.forEach(el => {
+          el.textContent = '';
+          el.style.display = 'none';
+        });
+        
+        inputElements.forEach(el => {
+          el.classList.remove('is-invalid');
+        });
+      }
+
+      function displayFormErrors(errors) {
+        for (const [field, messages] of Object.entries(errors)) {
+          const errorElement = document.getElementById(`${field}Error`);
+          const inputElement = document.getElementById(field);
+          
+          if (errorElement && inputElement) {
+            errorElement.textContent = messages[0];
+            errorElement.style.display = 'block';
+            inputElement.classList.add('is-invalid');
+          }
+        }
+      }
+
+      function showSuccessMessage(message) {
+        // Create temporary success alert
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-success alert-dismissible fade show position-fixed';
+        alert.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+        alert.innerHTML = `
+          <i class="fas fa-check-circle me-2"></i>${message}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(alert);
+        
+        // Auto-remove after 3 seconds
+        setTimeout(() => {
+          if (alert.parentNode) {
+            alert.parentNode.removeChild(alert);
+          }
+        }, 3000);
+      }
+
+      function showErrorMessage(message) {
+        // Create temporary error alert
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-danger alert-dismissible fade show position-fixed';
+        alert.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+        alert.innerHTML = `
+          <i class="fas fa-exclamation-circle me-2"></i>${message}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(alert);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+          if (alert.parentNode) {
+            alert.parentNode.removeChild(alert);
+          }
+        }, 5000);
+      }
+    </script>
+
+    <!-- CSS for Custom Toggle Switch -->
+    <style>
+      .toggle-container {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      }
+
+      .toggle-switch {
+        position: relative;
+        width: 60px;
+        height: 30px;
+      }
+
+      .toggle-input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+
+      .toggle-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(45deg, #6c5ce7, #a29bfe);
+        transition: .4s;
+        border-radius: 30px;
+        box-shadow: 0 2px 10px rgba(108, 92, 231, 0.3);
+      }
+
+      .toggle-slider:before {
+        position: absolute;
+        content: "";
+        height: 22px;
+        width: 22px;
+        left: 4px;
+        bottom: 4px;
+        background-color: white;
+        transition: .4s;
+        border-radius: 50%;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      }
+
+      .toggle-input:checked + .toggle-slider {
+        background: linear-gradient(45deg, #00cec9, #55efc4);
+        box-shadow: 0 2px 10px rgba(0, 206, 201, 0.3);
+      }
+
+      .toggle-input:checked + .toggle-slider:before {
+        transform: translateX(30px);
+      }
+
+      .toggle-label {
+        font-weight: 500;
+        transition: all 0.3s ease;
+      }
+
+      .modal-content {
+        border: none;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+      }
+
+      .form-control, .form-select {
+        background-color: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+      }
+
+      .form-control:focus, .form-select:focus {
+        background-color: rgba(255, 255, 255, 0.15);
+        border-color: #6c5ce7;
+        box-shadow: 0 0 0 0.2rem rgba(108, 92, 231, 0.25);
+        color: white;
+      }
+
+      .form-control::placeholder {
+        color: rgba(255, 255, 255, 0.6);
+      }
+
+      .form-select option {
+        background-color: #1a1a2e;
+        color: white;
+      }
+    </style>
 
 <!-- External JavaScript for Space Background Animation -->
 <!-- This script handles the starfield background animation -->

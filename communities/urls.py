@@ -27,9 +27,11 @@ urlpatterns = [
     # Community creation endpoint
     path('community/create/', views.create_community, name='create_community'),
     
-    # Future community detail page (currently commented out)
-    # This would show individual community pages with posts and member lists
-    # path('community/<slug:slug>/', views.community_detail, name='community_detail')
+    # Sub-community dashboard - shows planets for sub-communities within a super community
+    path('<slug:slug>/dashboard/', views.community_dashboard, name='community_dashboard'),
+    
+    # Individual community detail page - where users collaborate
+    path('<slug:slug>/', views.community_detail, name='community_detail'),
     
     # Additional URL patterns could include:
     # - Community member management
