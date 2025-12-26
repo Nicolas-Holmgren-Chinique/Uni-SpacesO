@@ -1,0 +1,109 @@
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block content %}
+<!-- Header Section with Navigation -->
+{% include 'includes/app_header.html' %}
+
+<div class="container-fluid py-5 position-relative" style="background-color: #0b0f19; min-height: 100vh; overflow: hidden;">
+    
+    <!-- Background stars canvas -->
+    <canvas id="starsCanvas" style="position: absolute; top: 0; left: 0; z-index: 0; width: 100%; height: 100%; pointer-events: none;">
+    </canvas>
+
+    <div class="container position-relative" style="z-index: 1;">
+    <div class="row mb-5">
+        <div class="col-md-8 mx-auto text-center">
+            <h1 class="display-4 mb-3 text-white fw-bold">UniSpaces Library</h1>
+            <p class="lead text-light mb-4" style="opacity: 0.8;">Access free textbooks, open educational resources, and peer-shared study materials.</p>
+            
+            <form action="{% url 'library:search' %}" method="get" class="d-flex gap-2 shadow-lg p-2 rounded-pill bg-dark border border-secondary" style="background: rgba(33, 37, 41, 0.8) !important; backdrop-filter: blur(5px);">
+                <input type="text" name="q" class="form-control form-control-lg bg-transparent text-white border-0 shadow-none ps-4" placeholder="Search for books, authors, or subjects..." required>
+                <button type="submit" class="btn btn-primary btn-lg rounded-pill px-4">Search</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="row mb-5">
+        <div class="col-12">
+            <h3 class="text-white mb-4 border-bottom border-secondary pb-2">Browse by Subject</h3>
+            <div class="d-flex flex-wrap gap-2">
+                {% for subject in subjects %}
+                    <a href="{% url 'library:search' %}?q={{ subject.name }}" class="btn btn-outline-light rounded-pill px-3">{{ subject.name }}</a>
+                {% empty %}
+                    <p class="text-muted">No subjects defined yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card bg-dark border-secondary h-100 shadow" style="background: rgba(33, 37, 41, 0.8) !important; backdrop-filter: blur(5px);">
+                <div class="card-header border-secondary bg-transparent">
+                    <h4 class="card-title text-white mb-0"><i class="fas fa-star text-warning me-2"></i>Featured Free Textbooks</h4>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        {% for book in featured_books %}
+                            <a href="{{ book.open_access_url }}" target="_blank" class="list-group-item list-group-item-action bg-transparent text-white border-secondary d-flex justify-content-between align-items-center px-0">
+                                <div class="d-flex align-items-center">
+                                    {% if book.cover_image_url %}
+                                        <img src="{{ book.cover_image_url }}" alt="Cover" class="me-3 rounded" style="width: 40px; height: 50px; object-fit: cover;">
+                                    {% else %}
+                                        <div class="me-3 rounded bg-secondary d-flex align-items-center justify-content-center" style="width: 40px; height: 50px;">
+                                            <i class="fas fa-book text-dark"></i>
+                                        </div>
+                                    {% endif %}
+                                    <div>
+                                        <h6 class="mb-1 text-info">{{ book.title }}</h6>
+                                        <small class="text-light opacity-75">{{ book.author }}</small>
+                                    </div>
+                                </div>
+                                <span class="badge bg-primary rounded-pill">{{ book.provider }}</span>
+                            </a>
+                        {% empty %}
+                            <div class="text-center py-3 text-muted">
+                                <i class="fas fa-book fa-2x mb-2"></i>
+                                <p>No featured books yet.</p>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-4">
+            <div class="card bg-dark border-secondary h-100 shadow">
+                <div class="card-header border-secondary bg-transparent d-flex justify-content-between align-items-center">
+                    <h4 class="card-title text-white mb-0"><i class="fas fa-file-alt text-success me-2"></i>Recent Study Materials</h4>
+                    <a href="{% url 'library:upload' %}" class="btn btn-sm btn-success rounded-pill"><i class="fas fa-upload me-1"></i> Upload</a>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        {% for material in recent_uploads %}
+                            <div class="list-group-item bg-transparent text-white border-secondary px-0">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1 text-info">{{ material.title }}</h6>
+                                    <small class="text-muted">{{ material.created_at|date:"M d" }}</small>
+                                </div>
+                                <p class="mb-1 small text-light opacity-75">{{ material.description|truncatechars:60 }}</p>
+                                <small class="text-warning">{{ material.get_material_type_display }}</small>
+                            </div>
+                        {% empty %}
+                            <div class="text-center py-3 text-muted">
+                                <i class="fas fa-file-alt fa-2x mb-2"></i>
+                                <p>No study materials uploaded yet.</p>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+</div>
+
+<!-- External JavaScript for Space Background Animation -->
+<script src="{% static 'js/home.js' %}"></script>
+{% endblock %}

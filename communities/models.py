@@ -31,6 +31,7 @@ import random
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils.text import slugify
+from .project_models import Skill, Project
 
 CARTOON_COLOR_PALETTE = (
     # Punchy warms

@@ -1,0 +1,57 @@
+{% load static %}
+<style>
+  .text-starlight {
+    color: #F9F5F5 !important;
+  }
+  .nav-link-starlight {
+    color: #F9F5F5 !important;
+    transition: color 0.3s ease, text-shadow 0.3s ease;
+  }
+  .nav-link-starlight:hover {
+    color: #ffffff !important;
+    text-shadow: 0 0 10px rgba(249, 245, 245, 0.5);
+  }
+</style>
+<header class="p-3 mb-3 border-bottom" style="background-color: rgba(11, 15, 25, 0.95); backdrop-filter: blur(10px);">
+  <div class="container">
+    <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start">
+      <!-- Logo -->
+      <a href="{% url 'home' %}" class="d-flex align-items-center mb-2 mb-lg-0 link-body-emphasis text-decoration-none me-4">
+        <img src="{% static 'images/uni-spaces-only-logo.png' %}" alt="Logo" style="width: 50px; height: 50px;">
+      </a>
+
+      <!-- Main Navigation Links -->
+      <ul class="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0">
+        <li><a href="{% url 'dashboard' %}" class="nav-link px-2 nav-link-starlight">Overview</a></li>
+        <li><a href="{% url 'communities:global_launchpad' %}" class="nav-link px-2 nav-link-starlight fw-bold"><i class="fas fa-rocket me-1"></i>Launchpad</a></li>
+        <li><a href="{% url 'study_session:room' %}" class="nav-link px-2 nav-link-starlight fw-bold"><i class="fas fa-satellite-dish me-1"></i>Study Sesh</a></li>
+        <li><a href="{% url 'study_session:navigator' %}" class="nav-link px-2 nav-link-starlight fw-bold"><i class="fas fa-calendar-alt me-1"></i>Navigator</a></li>
+        <li><a href="{% url 'careers:mission_control' %}" class="nav-link px-2 nav-link-starlight fw-bold"><i class="fas fa-user-astronaut me-1"></i>Mission Control</a></li>
+        <li><a href="{% url 'library:home' %}" class="nav-link px-2 nav-link-starlight fw-bold"><i class="fas fa-book me-1"></i>Library</a></li>
+      </ul>
+
+      <!-- Search Form -->
+      <form class="col-12 col-lg-auto mb-3 mb-lg-0 me-lg-3" role="search">
+        <input type="search" class="form-control bg-dark text-starlight border-secondary" placeholder="Search..." aria-label="Search">
+      </form>
+
+      <!-- User Profile Dropdown -->
+      <div class="dropdown text-end">
+        <a href="#" class="d-block link-body-emphasis text-decoration-none dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+          {% if user.profile.profile_picture %}
+            <img src="{{ user.profile.profile_picture.url }}" alt="Profile" width="32" height="32" class="rounded-circle">
+          {% else %}
+            <img src="{% static 'images/astro_helmet 1.svg' %}" alt="Default Profile Picture" width="32" height="32" class="rounded-circle">
+          {% endif %}
+        </a>
+        <ul class="dropdown-menu text-small shadow" style="background-color: #1a1a2e; border-color: #2c3e50;">
+          <li><a class="dropdown-item text-starlight" href="#">Build a Community...</a></li>
+          <li><a class="dropdown-item text-starlight" href="#">Settings</a></li>
+          <li><a class="dropdown-item text-starlight" href="{% url 'profile_view' %}">Profile</a></li>
+          <li><hr class="dropdown-divider border-secondary"></li>
+          <li><a class="dropdown-item text-starlight" href="{% url 'logout' %}">Sign out</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</header>

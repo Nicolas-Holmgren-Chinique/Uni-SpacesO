@@ -137,6 +137,21 @@ class UserProfile(models.Model):
     # password = models.CharField(max_length=128)  # Store hashed password
 
 
+class Friendship(models.Model):
+    """
+    Model to represent a friendship/follow relationship between two users.
+    """
+    from_user = models.ForeignKey(User, related_name='following', on_delete=models.CASCADE)
+    to_user = models.ForeignKey(User, related_name='followers', on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('from_user', 'to_user')
+
+    def __str__(self):
+        return f"{self.from_user} follows {self.to_user}"
+
+
 """
 Signal Handlers (Currently Disabled)
 

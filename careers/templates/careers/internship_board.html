@@ -1,0 +1,117 @@
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block content %}
+<!-- Header Section with Navigation -->
+{% include 'includes/app_header.html' %}
+
+<div class="container-fluid py-5 position-relative" style="background-color: #0b0f19; min-height: 100vh; overflow: hidden;">
+    
+    <!-- Background stars canvas -->
+    <canvas id="starsCanvas" style="position: absolute; top: 0; left: 0; z-index: 0; width: 100%; height: 100%; pointer-events: none;">
+    </canvas>
+
+    <div class="container position-relative" style="z-index: 1;">
+        <!-- Header -->
+        <div class="row mb-5 text-center">
+            <div class="col-lg-8 mx-auto">
+                <h1 class="display-4 text-white fw-bold mb-3">Mission Control</h1>
+                <p class="lead text-light opacity-75">Your command center for career preparation, internships, and skill tracking.</p>
+            </div>
+        </div>
+
+        <!-- Dashboard Widgets -->
+        <div class="row mb-5 g-4">
+            <!-- Resume Builder -->
+            <div class="col-md-4">
+                <div class="card bg-dark border-secondary shadow-lg h-100 hover-lift" style="background: rgba(33, 37, 41, 0.8) !important; backdrop-filter: blur(5px);">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3 text-primary">
+                            <i class="fas fa-file-alt fa-3x"></i>
+                        </div>
+                        <h4 class="text-white fw-bold">Resume Builder</h4>
+                        <p class="text-light opacity-75 small">Auto-generate a professional resume from your profile and projects.</p>
+                        <button class="btn btn-outline-primary rounded-pill w-100 mt-3">Generate Resume</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mock Interviews -->
+            <div class="col-md-4">
+                <div class="card bg-dark border-secondary shadow-lg h-100 hover-lift" style="background: rgba(33, 37, 41, 0.8) !important; backdrop-filter: blur(5px);">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3 text-success">
+                            <i class="fas fa-user-tie fa-3x"></i>
+                        </div>
+                        <h4 class="text-white fw-bold">Mock Interviews</h4>
+                        <p class="text-light opacity-75 small">Practice with AI-driven questions tailored to your field.</p>
+                        <button class="btn btn-outline-success rounded-pill w-100 mt-3">Start Session</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Skill Matrix -->
+            <div class="col-md-4">
+                <div class="card bg-dark border-secondary shadow-lg h-100 hover-lift" style="background: rgba(33, 37, 41, 0.8) !important; backdrop-filter: blur(5px);">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3 text-info">
+                            <i class="fas fa-chart-radar fa-3x"></i>
+                        </div>
+                        <h4 class="text-white fw-bold">Skill Matrix</h4>
+                        <p class="text-light opacity-75 small">Visualize your strengths and identify gaps in your skillset.</p>
+                        <button class="btn btn-outline-info rounded-pill w-100 mt-3">View Matrix</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Internship Board -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card bg-dark border-secondary shadow-lg">
+                    <div class="card-header border-secondary bg-transparent d-flex justify-content-between align-items-center py-3">
+                        <h4 class="text-white mb-0"><i class="fas fa-briefcase me-2 text-warning"></i>Internship Opportunities</h4>
+                        <button class="btn btn-sm btn-outline-light">Filter Opportunities</button>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="list-group list-group-flush">
+                            {% for internship in internships %}
+                            <div class="list-group-item bg-transparent border-secondary p-4 hover-bg-dark">
+                                <div class="row align-items-center">
+                                    <div class="col-md-8">
+                                        <h5 class="text-white fw-bold mb-1">{{ internship.title }}</h5>
+                                        <p class="text-info mb-2">{{ internship.company }} <span class="text-muted mx-2">•</span> <span class="text-light opacity-75 small">{{ internship.location }}</span></p>
+                                        <p class="text-light opacity-75 small mb-0">{{ internship.description|truncatechars:150 }}</p>
+                                    </div>
+                                    <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                                        {% if internship.deadline %}
+                                            <div class="text-warning small mb-2">Deadline: {{ internship.deadline }}</div>
+                                        {% endif %}
+                                        <a href="{{ internship.application_link }}" target="_blank" class="btn btn-primary rounded-pill px-4">Apply Now</a>
+                                    </div>
+                                </div>
+                            </div>
+                            {% empty %}
+                            <div class="text-center py-5">
+                                <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                                <h5 class="text-white">No open positions found.</h5>
+                                <p class="text-muted">Check back later for new mission assignments.</p>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .hover-lift { transition: transform 0.2s ease; }
+    .hover-lift:hover { transform: translateY(-5px); }
+    .hover-bg-dark:hover { background-color: rgba(255,255,255,0.05) !important; }
+</style>
+
+<!-- External JavaScript for Space Background Animation -->
+<script src="{% static 'js/home.js' %}"></script>
+{% endblock %}

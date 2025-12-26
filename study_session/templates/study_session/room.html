@@ -1,0 +1,2559 @@
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block title %}Study Sesh - Mission Control{% endblock %}
+
+{% block content %}
+<!-- Header Section with Navigation -->
+{% include 'includes/app_header.html' %}
+
+<style>
+    :root {
+        --void-black: #0C0B10;
+        --command-blue: #1E4C84;
+        --starlight-white: #F9F5F5;
+        --panel-bg: rgba(30, 76, 132, 0.2); /* Command Blue with opacity */
+        --panel-border: rgba(249, 245, 245, 0.3); /* Starlight White with opacity */
+    }
+
+    body {
+        background-color: var(--void-black);
+        color: var(--starlight-white);
+        overflow: hidden; /* Prevent scrolling in the mission view */
+    }
+
+    .mission-control-container {
+        display: flex;
+        height: calc(100vh - 110px); /* Adjusted to prevent bottom cutoff */
+        position: relative;
+        z-index: 1;
+        overflow: hidden;
+    }
+
+    .sidebar {
+        width: 250px;
+        background: rgba(30, 76, 132, 0.2); /* Command Blue low opacity */
+        backdrop-filter: blur(10px);
+        border-right: 1px solid var(--panel-border);
+        transition: transform 0.3s ease-in-out, width 0.3s ease-in-out;
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+        padding: 1rem;
+        padding-top: 4rem; /* Added top padding to prevent toggle button overlap */
+        padding-bottom: 3rem; /* Ensure bottom content is accessible */
+        flex-shrink: 0;
+    }
+
+    .sidebar.collapsed {
+        transform: translateX(-100%);
+        width: 0;
+        padding: 0;
+        border: none;
+    }
+
+    .sidebar-right {
+        width: 300px;
+        border-right: none;
+        border-left: 1px solid var(--panel-border);
+    }
+
+    .sidebar-right.collapsed {
+        transform: translateX(100%);
+    }
+
+    /* Mobile Responsiveness */
+    @media (max-width: 768px) {
+        .sidebar {
+            position: absolute;
+            height: 100%;
+            z-index: 20;
+            background: rgba(12, 11, 16, 0.95); /* Darker bg for mobile overlay */
+        }
+        .sidebar.collapsed {
+            transform: translateX(-100%);
+            width: 0;
+        }
+        .sidebar-right.collapsed {
+            transform: translateX(100%);
+        }
+        /* Hide sidebars by default on mobile if needed, or handle via JS */
+    }
+
+    .main-stage {
+        flex-grow: 1;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        transition: margin 0.3s ease-in-out;
+    }
+
+    .toggle-btn {
+        position: absolute;
+        top: 1rem;
+        z-index: 30; /* Increased z-index to ensure visibility */
+        background: var(--command-blue);
+        color: var(--starlight-white);
+        border: 1px solid var(--panel-border); /* Added border for visibility */
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 0 10px rgba(30, 76, 132, 0.5);
+        transition: all 0.2s;
+    }
+
+    .toggle-btn:hover {
+        transform: scale(1.1);
+        box-shadow: 0 0 15px rgba(30, 76, 132, 0.8);
+    }
+
+    .toggle-left { left: 1rem; }
+    .toggle-right { right: 1rem; }
+
+    /* Panel Styling */
+    .mission-panel {
+        background: var(--panel-bg);
+        border: 1px solid var(--panel-border);
+        border-radius: 10px;
+        margin-bottom: 1.5rem;
+        overflow: visible; /* Changed to visible to prevent clipping of shadows/content */
+    }
+
+    .mission-panel-header {
+        background: rgba(30, 76, 132, 0.4);
+        padding: 0.75rem 1rem;
+        font-weight: bold;
+        border-bottom: 1px solid var(--panel-border);
+        display: flex;
+        align-items: center;
+        border-top-left-radius: 10px;
+        border-top-right-radius: 10px;
+    }
+
+    .mission-panel-body {
+        padding: 1rem;
+    }
+
+    /* Timer Specifics */
+    .timer-display {
+        font-family: 'VT323', monospace;
+        font-size: 4rem; /* Reduced size to prevent overflow */
+        color: var(--starlight-white);
+        text-shadow: 0 0 15px rgba(249, 245, 245, 0.5);
+        line-height: 1;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+        width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+        background: rgba(0,0,0,0.1);
+    }
+    ::-webkit-scrollbar-thumb {
+        background: var(--command-blue);
+        border-radius: 4px;
+    }
+
+    /* Text Utilities */
+    .text-starlight {
+        color: var(--starlight-white) !important;
+    }
+    .text-starlight-muted {
+        color: var(--starlight-white) !important;
+        opacity: 0.6;
+    }
+
+    /* Button Utilities */
+    .btn-command {
+        background-color: var(--command-blue);
+        color: var(--starlight-white);
+        border: 1px solid var(--panel-border);
+    }
+    .btn-command:hover {
+        background-color: #163a66; /* Darker shade of command blue */
+        color: var(--starlight-white);
+        box-shadow: 0 0 10px rgba(30, 76, 132, 0.5);
+    }
+
+    /* Modal Styling */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 2000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(5px);
+    }
+    .modal-content {
+        width: 400px;
+        max-width: 90%;
+        background: #0C0B10; /* Void Black */
+        border: 1px solid var(--command-blue);
+        box-shadow: 0 0 20px rgba(30, 76, 132, 0.5);
+        border-radius: 10px;
+    }
+    
+    /* Invite Modal Specifics */
+    #inviteModal .form-control {
+        background-color: rgba(30, 76, 132, 0.3) !important;
+        color: var(--starlight-white) !important;
+        border-color: var(--panel-border) !important;
+    }
+    #inviteModal .form-control::placeholder {
+        color: rgba(249, 245, 245, 0.5) !important;
+    }
+    #inviteModal .list-group-item {
+        background-color: transparent !important;
+        color: var(--starlight-white) !important;
+        border-color: var(--panel-border) !important;
+    }
+    #inviteModal .list-group-item:hover {
+        background-color: rgba(30, 76, 132, 0.2) !important;
+    }
+    
+    /* Tab Styling for Invite Modal */
+    #inviteModal .nav-tabs .nav-link {
+        color: var(--starlight-white);
+        border: 1px solid transparent;
+    }
+    #inviteModal .nav-tabs .nav-link:hover {
+        border-color: var(--panel-border);
+    }
+    #inviteModal .nav-tabs .nav-link.active {
+        background-color: var(--starlight-white) !important;
+        color: var(--void-black) !important;
+        border-color: var(--starlight-white) !important;
+    }
+
+    /* Cargo Bay Styles */
+    .cargo-item {
+        background: rgba(30, 76, 132, 0.2);
+        border: 1px solid var(--panel-border);
+        border-radius: 5px;
+        padding: 5px;
+        margin-bottom: 5px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .cargo-item:hover {
+        background: rgba(30, 76, 132, 0.4);
+        border-color: #00F0FF;
+    }
+    .drop-zone-active {
+        border-color: #00F0FF !important;
+        background: rgba(0, 240, 255, 0.1);
+        box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+    }
+
+    /* Holographic Viewer */
+    .hologram-window {
+        position: absolute;
+        top: 20%;
+        left: 30%;
+        width: 500px;
+        height: 400px;
+        background: rgba(30, 76, 132, 0.2);
+        border: 1px solid #00F0FF;
+        backdrop-filter: blur(10px);
+        border-radius: 10px;
+        z-index: 1100;
+        display: none;
+        flex-direction: column;
+        overflow: hidden;
+        box-shadow: 0 0 20px rgba(0, 240, 255, 0.2);
+        resize: both; /* Allow resizing */
+    }
+
+    .hologram-header {
+        background: rgba(30, 76, 132, 0.6);
+        padding: 10px;
+        border-bottom: 1px solid #00F0FF;
+        color: #00F0FF;
+        font-family: 'Courier New', monospace;
+        font-weight: bold;
+        cursor: move;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .hologram-body {
+        flex-grow: 1;
+        position: relative;
+        overflow: auto;
+        padding: 10px;
+    }
+
+    .scanline {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(to bottom, transparent 50%, rgba(0, 240, 255, 0.1) 51%, transparent 52%);
+        background-size: 100% 10px;
+        pointer-events: none;
+        animation: scanlineMove 1s linear infinite;
+    }
+
+    @keyframes scanlineMove {
+        0% { background-position: 0 0; }
+        100% { background-position: 0 100%; }
+    }
+
+    .mock-pdf-page {
+        background: #555;
+        width: 80%;
+        margin: 0 auto;
+        height: 100%;
+        padding: 20px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    }
+    .mock-text-line {
+        height: 10px;
+        background: #777;
+        margin-bottom: 10px;
+        width: 100%;
+    }
+
+    /* Background Modes */
+    .bg-nebula {
+        background: linear-gradient(45deg, #0C0B10 0%, #1E4C84 50%, #4a1e84 100%);
+        background-size: 400% 400%;
+        animation: nebulaGradient 15s ease infinite;
+    }
+    @keyframes nebulaGradient {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+
+    /* Battle Mode */
+    .battle-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 0; /* Same as stars */
+        overflow: hidden;
+    }
+    .battle-ship {
+        position: absolute;
+        font-size: 24px;
+        transition: transform 0.1s;
+        filter: drop-shadow(0 0 5px currentColor);
+    }
+    .ship-blue { color: #00d2ff; }
+    .ship-red { color: #ff4d4d; }
+    
+    .battle-laser {
+        position: absolute;
+        height: 2px;
+        width: 20px;
+        background: currentColor;
+        box-shadow: 0 0 4px currentColor;
+    }
+    
+    .battle-explosion {
+        position: absolute;
+        font-size: 24px;
+        color: #ffaa00;
+        animation: explode 0.5s ease-out forwards;
+        pointer-events: none;
+    }
+    
+    @keyframes explode {
+        0% { transform: scale(0.5); opacity: 1; }
+        50% { transform: scale(1.5); opacity: 0.8; }
+        100% { transform: scale(2); opacity: 0; }
+    }
+
+    /* --- Nav Computer (Widget Dock) --- */
+    .nav-dock {
+        position: fixed;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        z-index: 1000;
+        background: rgba(12, 11, 16, 0.6);
+        padding: 10px;
+        border-radius: 20px;
+        border: 1px solid var(--panel-border);
+        backdrop-filter: blur(5px);
+    }
+
+    .dock-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: rgba(30, 76, 132, 0.3);
+        border: 1px solid var(--command-blue);
+        color: var(--starlight-white);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 1.2rem;
+    }
+
+    .dock-icon:hover {
+        background: var(--command-blue);
+        box-shadow: 0 0 10px #00f3ff;
+        transform: scale(1.1);
+    }
+
+    /* Floating Windows */
+    .floating-window {
+        position: absolute;
+        background: rgba(12, 11, 16, 0.9);
+        border: 1px solid #00f3ff;
+        box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
+        border-radius: 10px;
+        min-width: 250px;
+        z-index: 100;
+        display: none; /* Hidden by default */
+        backdrop-filter: blur(10px);
+        overflow: hidden;
+    }
+
+    .window-header {
+        padding: 10px;
+        background: rgba(30, 76, 132, 0.6);
+        border-bottom: 1px solid var(--panel-border);
+        cursor: move;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: #00f3ff;
+        font-family: 'Courier New', monospace;
+        font-weight: bold;
+    }
+
+    .window-body {
+        padding: 15px;
+        color: var(--starlight-white);
+    }
+
+    .close-window {
+        cursor: pointer;
+        color: var(--starlight-white);
+        opacity: 0.7;
+    }
+    .close-window:hover { opacity: 1; }
+
+    /* Calculator Styles */
+    .calc-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 5px;
+    }
+    .calc-btn {
+        background: rgba(30, 76, 132, 0.3);
+        border: 1px solid var(--panel-border);
+        color: var(--starlight-white);
+        padding: 10px;
+        border-radius: 5px;
+        cursor: pointer;
+        text-align: center;
+    }
+    .calc-btn:hover { background: var(--command-blue); }
+    .calc-display {
+        width: 100%;
+        background: #000;
+        color: #00f3ff;
+        border: 1px solid var(--panel-border);
+        padding: 10px;
+        margin-bottom: 10px;
+        text-align: right;
+        font-family: 'VT323', monospace;
+        font-size: 1.5rem;
+    }
+
+    /* Notepad Styles */
+    .notepad-area {
+        width: 100%;
+        height: 200px;
+        background: rgba(0, 0, 0, 0.5);
+        border: 1px solid var(--panel-border);
+        color: var(--starlight-white);
+        padding: 10px;
+        font-family: 'Courier New', monospace;
+        resize: both;
+    }
+</style>
+
+<!-- Background stars canvas -->
+<canvas id="starsCanvas" style="position: absolute; top: 0; left: 0; z-index: 0; width: 100%; height: 100%; pointer-events: none;"></canvas>
+<!-- Battle Container -->
+<div id="battleContainer" class="battle-container" style="display: none;"></div>
+
+<!-- Nav Computer (Widget Dock) -->
+<div class="nav-dock">
+    <a href="{% url 'study_session:navigator' %}" class="dock-icon" title="The Navigator (AI Planner)" style="text-decoration: none;">
+        <i class="fas fa-calendar-alt"></i>
+    </a>
+    <div class="dock-icon" onclick="toggleWindow('calculatorWindow')" title="Calculator">
+        <i class="fas fa-calculator"></i>
+    </div>
+    <div class="dock-icon" onclick="toggleWindow('notepadWindow')" title="Scratchpad">
+        <i class="fas fa-sticky-note"></i>
+    </div>
+    <div class="dock-icon" onclick="toggleWindow('linksWindow')" title="Quick Links">
+        <i class="fas fa-link"></i>
+    </div>
+</div>
+
+<!-- Floating Window: Calculator -->
+<div id="calculatorWindow" class="floating-window" style="top: 20%; left: 40%; width: 320px;">
+    <div class="window-header" id="calcHeader">
+        <span><i class="fas fa-calculator me-2"></i>SCI-CALC 9000</span>
+        <i class="fas fa-times close-window" onclick="toggleWindow('calculatorWindow')"></i>
+    </div>
+    <div class="window-body">
+        <input type="text" class="calc-display" id="calcDisplay" readonly style="font-size: 1.2rem; margin-bottom: 10px;">
+        <div class="calc-grid" style="grid-template-columns: repeat(5, 1fr);">
+            <!-- Scientific Functions -->
+            <button class="calc-btn btn-info" onclick="calcFunc('sin')">sin</button>
+            <button class="calc-btn btn-info" onclick="calcFunc('cos')">cos</button>
+            <button class="calc-btn btn-info" onclick="calcFunc('tan')">tan</button>
+            <button class="calc-btn btn-info" onclick="calcFunc('log')">log</button>
+            <button class="calc-btn btn-info" onclick="calcFunc('ln')">ln</button>
+
+            <button class="calc-btn btn-info" onclick="calcFunc('sqrt')">√</button>
+            <button class="calc-btn btn-info" onclick="calcOp('**')">^</button>
+            <button class="calc-btn btn-info" onclick="calcInput('(')">(</button>
+            <button class="calc-btn btn-info" onclick="calcInput(')')">)</button>
+            <button class="calc-btn btn-info" onclick="calcInput('Math.PI')">π</button>
+
+            <!-- Standard Keypad -->
+            <button class="calc-btn" onclick="calcInput('7')">7</button>
+            <button class="calc-btn" onclick="calcInput('8')">8</button>
+            <button class="calc-btn" onclick="calcInput('9')">9</button>
+            <button class="calc-btn btn-warning" onclick="calcBackspace()">DEL</button>
+            <button class="calc-btn btn-danger" onclick="calcClear()">AC</button>
+            
+            <button class="calc-btn" onclick="calcInput('4')">4</button>
+            <button class="calc-btn" onclick="calcInput('5')">5</button>
+            <button class="calc-btn" onclick="calcInput('6')">6</button>
+            <button class="calc-btn" onclick="calcOp('*')">×</button>
+            <button class="calc-btn" onclick="calcOp('/')">÷</button>
+            
+            <button class="calc-btn" onclick="calcInput('1')">1</button>
+            <button class="calc-btn" onclick="calcInput('2')">2</button>
+            <button class="calc-btn" onclick="calcInput('3')">3</button>
+            <button class="calc-btn" onclick="calcOp('+')">+</button>
+            <button class="calc-btn" onclick="calcOp('-')">-</button>
+            
+            <button class="calc-btn" onclick="calcInput('0')" style="grid-column: span 2;">0</button>
+            <button class="calc-btn" onclick="calcInput('.')">.</button>
+            <button class="calc-btn btn-success" onclick="calcResult()" style="grid-column: span 2;">=</button>
+        </div>
+    </div>
+</div>
+
+<!-- Floating Window: Notepad -->
+<div id="notepadWindow" class="floating-window" style="top: 20%; left: 60%;">
+    <div class="window-header" id="noteHeader">
+        <span><i class="fas fa-sticky-note me-2"></i>SCRATCHPAD</span>
+        <div class="d-flex align-items-center">
+            <span id="saveStatus" class="small text-success me-2" style="opacity: 0; transition: opacity 0.5s;">Saved</span>
+            <i class="fas fa-times close-window" onclick="toggleWindow('notepadWindow')"></i>
+        </div>
+    </div>
+    <div class="window-body">
+        <textarea id="scratchpad" class="notepad-area" placeholder="Jot down mission notes..." oninput="saveScratchpad()"></textarea>
+        <div class="d-flex justify-content-end mt-2">
+            <button class="btn btn-sm btn-outline-info" onclick="downloadNote()">
+                <i class="fas fa-download me-1"></i> Save to File
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Floating Window: Quick Links -->
+<div id="linksWindow" class="floating-window" style="top: 50%; left: 50%; width: 300px;">
+    <div class="window-header" id="linksHeader">
+        <span><i class="fas fa-link me-2"></i>HYPERLINKS</span>
+        <i class="fas fa-times close-window" onclick="toggleWindow('linksWindow')"></i>
+    </div>
+    <div class="window-body">
+        <p class="small text-starlight-muted mb-2">Quick access to external resources.</p>
+        
+        <!-- Add Link Form -->
+        <div class="input-group mb-3">
+            <input type="text" id="linkSearchInput" class="form-control bg-transparent text-starlight border-secondary" placeholder="Search (e.g. 'Canvas', 'Gmail')" style="font-size: 0.8rem;" onkeypress="handleLinkSearch(event)">
+            <button class="btn btn-outline-primary" onclick="searchAndAddLink()"><i class="fas fa-search-plus"></i></button>
+        </div>
+        <div id="linkSearchStatus" class="small text-info mb-2" style="display:none;">Searching...</div>
+
+        <ul class="list-group list-group-flush" id="linksList">
+            <!-- Default Links -->
+            <li class="list-group-item bg-transparent border-secondary px-0 d-flex justify-content-between align-items-center">
+                <a href="https://canvas.instructure.com" target="_blank" class="text-info text-decoration-none"><i class="fas fa-university me-2"></i>Canvas</a>
+            </li>
+            <li class="list-group-item bg-transparent border-secondary px-0 d-flex justify-content-between align-items-center">
+                <a href="https://chatgpt.com" target="_blank" class="text-info text-decoration-none"><i class="fas fa-robot me-2"></i>ChatGPT</a>
+            </li>
+            <!-- Custom links will be injected here -->
+        </ul>
+    </div>
+</div>
+
+<!-- Holographic Viewer Window -->
+<div id="hologramViewer" class="hologram-window">
+    <div class="hologram-header" id="hologramHeader">
+        <span id="hologramTitle">File Viewer</span>
+        <i class="fas fa-times cursor-pointer" onclick="closeViewer()"></i>
+    </div>
+    <div class="hologram-body" id="hologramContent">
+        <!-- Content injected here -->
+    </div>
+    <div class="scanline"></div>
+</div>
+
+<div class="mission-control-container">
+    <!-- Left Sidebar Toggle -->
+    <button class="toggle-btn toggle-left" id="toggleLeft" title="Toggle Navigation">
+        <i class="fas fa-chevron-left"></i>
+    </button>
+
+    <!-- Left Sidebar: Navigation & Social -->
+    <aside class="sidebar" id="leftSidebar">
+        <h4 class="mb-4 text-center text-starlight" style="text-shadow: 0 0 10px rgba(249, 245, 245, 0.3);">
+            <i class="fas fa-globe me-2"></i>Comms & Nav
+        </h4>
+
+        <!-- Navigation Placeholder -->
+        <div class="mission-panel">
+            <div class="mission-panel-header text-starlight">
+                <i class="fas fa-map-marker-alt me-2"></i> Destinations
+            </div>
+            <div class="mission-panel-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item bg-transparent border-secondary text-starlight px-0">
+                        <a href="{% url 'dashboard' %}" class="text-decoration-none text-starlight"><i class="fas fa-home me-2"></i>Dashboard</a>
+                    </li>
+                    <li class="list-group-item bg-transparent border-secondary text-starlight px-0">
+                        <a href="{% url 'library:home' %}" class="text-decoration-none text-starlight"><i class="fas fa-book me-2"></i>Library</a>
+                    </li>
+                    <li class="list-group-item bg-transparent border-secondary text-starlight px-0">
+                        <a href="{% url 'communities:global_launchpad' %}" class="text-decoration-none text-starlight"><i class="fas fa-users me-2"></i>Communities</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Active Crew (Multiplayer) -->
+        <div class="mission-panel">
+            <div class="mission-panel-header text-starlight d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-users me-2"></i> Active Crew</span>
+                <span class="badge bg-primary rounded-pill" id="crewCount">1</span>
+            </div>
+            <div class="mission-panel-body p-0">
+                <ul class="list-group list-group-flush" id="crewList">
+                    <!-- Crew items will be injected here -->
+                    <li class="list-group-item bg-transparent border-secondary text-starlight d-flex align-items-center">
+                        <div class="rounded-circle bg-success me-2" style="width: 8px; height: 8px;"></div>
+                        <span>{{ request.user.username }} (You)</span>
+                    </li>
+                </ul>
+                <div class="p-2 border-top border-secondary">
+                    <button class="btn btn-sm btn-outline-info w-100 mb-2" onclick="copyInviteLink()">
+                        <i class="fas fa-satellite-dish me-2"></i> Transponder
+                    </button>
+                    <button class="btn btn-sm btn-outline-success w-100" onclick="openInviteModal()">
+                        <i class="fas fa-user-plus me-2"></i> Invite Friends
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cargo Bay (File Sharing) -->
+        <div class="mission-panel">
+            <div class="mission-panel-header text-starlight">
+                <i class="fas fa-box-open me-2"></i> Cargo Bay
+            </div>
+            <div class="mission-panel-body p-2">
+                <!-- File List -->
+                <div id="cargoList" class="mb-2" style="max-height: 100px; overflow-y: auto;">
+                    <div class="text-center text-starlight-muted small fst-italic" id="cargoEmptyState">No cargo loaded.</div>
+                </div>
+                
+                <!-- Progress Bar -->
+                <div id="cargoProgress" class="mb-2" style="display: none;">
+                    <div class="d-flex justify-content-between small text-info mb-1">
+                        <span>Transmitting...</span>
+                        <span id="cargoPercent">0%</span>
+                    </div>
+                    <div class="progress bg-transparent border border-info" style="height: 10px;">
+                        <div class="progress-bar bg-info progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Drop Zone -->
+                <div id="cargoDropZone" class="border border-secondary border-dashed rounded p-3 text-center cursor-pointer" 
+                     style="border-style: dashed !important; transition: all 0.3s;"
+                     ondragover="handleDragOver(event)" 
+                     ondragleave="handleDragLeave(event)" 
+                     ondrop="handleDrop(event)"
+                     onclick="document.getElementById('cargoInput').click()">
+                    <i class="fas fa-cloud-upload-alt fa-2x text-starlight-muted mb-2"></i>
+                    <div class="small text-starlight-muted">Drop Cargo Here to Transmit</div>
+                    <input type="file" id="cargoInput" class="d-none" onchange="handleFileSelect(event)">
+                </div>
+            </div>
+        </div>
+
+        <!-- System Settings (Terraforming) -->
+        <div class="mission-panel mt-auto">
+            <div class="mission-panel-header text-starlight pointer" style="cursor: pointer;" onclick="toggleSettingsModal()">
+                <i class="fas fa-cog me-2"></i> Terraforming
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Stage: Open Canvas -->
+    <main class="main-stage">
+        <div class="text-center">
+            <h1 class="display-4 fw-bold" style="color: var(--starlight-white); text-shadow: 0 0 20px rgba(249, 245, 245, 0.2); user-select: none;">
+                System Online.
+            </h1>
+            <p class="lead" style="color: var(--starlight-white); opacity: 0.8; user-select: none;">
+                Ready to Launch.
+            </p>
+        </div>
+
+        <!-- Comms Log (Chat) -->
+        <div id="commsPanel" class="mission-panel position-absolute bottom-0 mb-0" style="width: 600px; max-width: 90%; height: 300px; border-bottom: none; border-radius: 10px 10px 0 0; transform: translateY(260px); transition: transform 0.3s ease-in-out;">
+            <div class="mission-panel-header text-starlight d-flex justify-content-between align-items-center pointer" onclick="toggleComms()">
+                <span><i class="fas fa-comments me-2"></i> Comms Log</span>
+                <i class="fas fa-chevron-up" id="commsToggleIcon"></i>
+            </div>
+            <div class="mission-panel-body d-flex flex-column" style="height: 260px;">
+                <div id="chatMessages" class="flex-grow-1 overflow-auto mb-2" style="font-family: 'Courier New', monospace; font-size: 0.9rem;">
+                    <!-- Messages go here -->
+                    <div class="text-starlight-muted small">System: Comms link established.</div>
+                </div>
+                <div class="input-group">
+                    <input type="text" id="chatInput" class="form-control bg-transparent text-starlight border-secondary" placeholder="Transmit message..." onkeypress="handleChatKey(event)">
+                    <button class="btn btn-outline-primary" onclick="sendChat()"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Right Sidebar Toggle -->
+    <button class="toggle-btn toggle-right" id="toggleRight" title="Toggle Tools">
+        <i class="fas fa-chevron-right"></i>
+    </button>
+
+    <!-- Right Sidebar: Tools (Timer, Tasks, Audio) -->
+    <aside class="sidebar sidebar-right" id="rightSidebar">
+        <h4 class="mb-4 text-center text-starlight" style="text-shadow: 0 0 10px rgba(249, 245, 245, 0.3);">
+            <i class="fas fa-tools me-2"></i>Mission Tools
+        </h4>
+
+        <!-- Pomodoro Module -->
+        <div class="mission-panel" id="pomodoroPanel">
+            <div class="mission-panel-header text-starlight">
+                <i class="fas fa-clock me-2"></i> Pomodoro Module
+            </div>
+            <div class="mission-panel-body text-center">
+                <div class="timer-display mb-3">
+                    <span id="minutes">25</span>:<span id="seconds">00</span>
+                </div>
+                
+                <div class="d-flex justify-content-center gap-2 mb-3">
+                    <button id="startBtn" class="btn btn-command btn-sm rounded-pill px-3">
+                        <i class="fas fa-play"></i> Start
+                    </button>
+                    <button id="pauseBtn" class="btn btn-outline-warning btn-sm rounded-pill px-3" style="display: none;">
+                        <i class="fas fa-pause"></i> Pause
+                    </button>
+                    <button id="resetBtn" class="btn btn-outline-danger btn-sm rounded-pill px-3">
+                        <i class="fas fa-redo"></i> Reset
+                    </button>
+                </div>
+
+                <div class="btn-group w-100" role="group">
+                    <button class="btn btn-sm btn-outline-light mode-btn active" data-time="25">Focus</button>
+                    <button class="btn btn-sm btn-outline-light mode-btn" data-time="5">Short</button>
+                    <button class="btn btn-sm btn-outline-light mode-btn" data-time="15">Long</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mission Timeline (Deadlines) -->
+        <div class="mission-panel" id="timelinePanel">
+            <div class="mission-panel-header text-starlight d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-calendar-alt me-2"></i> Mission Timeline</span>
+                <button class="btn btn-sm btn-link text-starlight p-0" id="toggleTimelineForm" onclick="toggleTimeline(event)"><i class="fas fa-plus"></i></button>
+            </div>
+            <div class="mission-panel-body">
+                <!-- Add Form (Hidden by default) -->
+                <div id="timelineForm" class="mb-3" style="display: none;">
+                    <input type="text" id="timelineName" class="form-control form-control-sm bg-transparent text-starlight border-secondary mb-2" placeholder="Mission Name">
+                    <input type="datetime-local" id="timelineDate" class="form-control form-control-sm bg-transparent text-starlight border-secondary mb-2" style="color-scheme: dark;">
+                    <button id="addTimelineBtn" class="btn btn-sm btn-command w-100" onclick="addTimelineItem()">Add Target</button>
+                </div>
+
+                <ul class="list-group list-group-flush" id="timelineList">
+                    <!-- Dynamic items will go here -->
+                </ul>
+                <div id="timelineEmptyState" class="text-center py-3 text-starlight-muted">
+                    <small>No active missions.</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Audio Comms (Music) -->
+        <div class="mission-panel" id="audioPanel">
+            <div class="mission-panel-header text-starlight">
+                <i class="fas fa-headphones me-2"></i> Audio Comms
+            </div>
+            <div class="mission-panel-body">
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item bg-transparent border-secondary text-starlight d-flex justify-content-between align-items-center px-0">
+                        <div><i class="fas fa-music me-2"></i>Lo-Fi (Simulation)</div>
+                        <button class="btn btn-sm btn-outline-light play-sound" data-sound="space"><i class="fas fa-play"></i></button>
+                    </div>
+                    <div class="list-group-item bg-transparent border-secondary text-starlight d-flex justify-content-between align-items-center px-0">
+                        <div><i class="fas fa-wave-square me-2"></i>White Noise</div>
+                        <button class="btn btn-sm btn-outline-light play-sound" data-sound="rain"><i class="fas fa-play"></i></button>
+                    </div>
+                </div>
+                <div class="mt-3 text-center">
+                    <label class="small text-starlight-muted mb-2">Signal Strength (Volume)</label>
+                    <input type="range" class="form-range" id="volumeControl" min="0" max="1" step="0.1" value="0.5">
+                </div>
+                
+                <!-- Audio Sources -->
+                <audio id="audio-space" loop preload="none">
+                    <source src="https://upload.wikimedia.org/wikipedia/commons/3/36/SolusLunes_-_Solus-_Endless_Space_%28cc-by-3.0%29.mp3" type="audio/mpeg">
+                </audio>
+                <audio id="audio-rain" loop preload="none">
+                    <source src="https://upload.wikimedia.org/wikipedia/commons/c/cf/Calm_rain.wav" type="audio/wav">
+                </audio>
+            </div>
+        </div>
+    </aside>
+</div>
+
+<!-- Terraforming Modal -->
+<div id="terraformingModal" class="modal-overlay" style="display: none;">
+    <div class="modal-content mission-panel m-0">
+        <div class="mission-panel-header text-starlight d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-cog me-2"></i> Terraforming Console</span>
+            <button class="btn btn-sm btn-link text-starlight" onclick="toggleSettingsModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="mission-panel-body">
+            <h5 class="text-starlight mb-3 small text-uppercase text-starlight-muted">Background Engine</h5>
+            <div class="d-flex gap-2 mb-2">
+                <button class="btn btn-sm btn-outline-light w-100" onclick="setTerraformMode('void')">Void</button>
+                <button class="btn btn-sm btn-outline-light w-100" onclick="setTerraformMode('nebula')">Nebula</button>
+            </div>
+            <div class="d-flex gap-2 mb-4">
+                <button class="btn btn-sm btn-outline-light w-100" onclick="setTerraformMode('starfield')">Starfield</button>
+                <button class="btn btn-sm btn-outline-light w-100" onclick="setTerraformMode('battle')">Space Battle</button>
+            </div>
+
+            <h5 class="text-starlight mb-3 small text-uppercase text-starlight-muted">Widget Visibility</h5>
+            <div class="form-check form-switch mb-2">
+                <input class="form-check-input" type="checkbox" id="togglePomodoro" checked onchange="toggleWidget('pomodoroPanel')">
+                <label class="form-check-label text-starlight" for="togglePomodoro">Pomodoro Module</label>
+            </div>
+            <div class="form-check form-switch mb-2">
+                <input class="form-check-input" type="checkbox" id="toggleTimeline" checked onchange="toggleWidget('timelinePanel')">
+                <label class="form-check-label text-starlight" for="toggleTimeline">Mission Timeline</label>
+            </div>
+            <div class="form-check form-switch mb-2">
+                <input class="form-check-input" type="checkbox" id="toggleAudio" checked onchange="toggleWidget('audioPanel')">
+                <label class="form-check-label text-starlight" for="toggleAudio">Audio Comms</label>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Alarm Modal -->
+<div id="alarmModal" class="modal-overlay" style="display: none; z-index: 2000;">
+    <div class="modal-content mission-panel m-0 text-center" style="max-width: 400px;">
+        <div class="mission-panel-header text-starlight d-flex justify-content-center align-items-center">
+            <span><i class="fas fa-bell me-2"></i> MISSION COMPLETE</span>
+        </div>
+        <div class="mission-panel-body py-4">
+            <h4 class="text-starlight mb-4">Time's Up!</h4>
+            <p class="text-starlight-muted mb-4">Take a break or start your next mission.</p>
+            <button class="btn btn-primary w-100" onclick="dismissAlarm()">
+                <i class="fas fa-check me-2"></i> Acknowledge
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- External JavaScript for Space Background Animation -->
+<script src="{% static 'js/home.js' %}"></script>
+
+    <!-- Invite Friends Modal -->
+    <div id="inviteModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content p-4">
+            <h3 class="text-starlight mb-3"><i class="fas fa-user-plus me-2"></i>Invite Crew</h3>
+            
+            <!-- Tabs -->
+            <ul class="nav nav-tabs border-secondary mb-3">
+                <li class="nav-item">
+                    <a class="nav-link active" href="#" onclick="switchInviteTab('friends')">My Friends</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" onclick="switchInviteTab('search')">Search Users</a>
+                </li>
+            </ul>
+
+            <!-- Friends List -->
+            <div id="inviteFriendsTab" style="height: 200px; overflow-y: auto;">
+                <div class="text-center text-starlight-muted mt-4">Loading friends...</div>
+            </div>
+
+            <!-- Search Tab -->
+            <div id="inviteSearchTab" style="display: none; height: 200px; overflow-y: auto;">
+                <div class="input-group mb-3">
+                    <input type="text" id="userSearchInput" class="form-control" placeholder="Search username...">
+                    <button class="btn btn-outline-info" onclick="searchUsers()"><i class="fas fa-search"></i></button>
+                </div>
+                <div id="userSearchResults"></div>
+            </div>
+
+            <div class="mt-3 text-end">
+                <button class="btn btn-outline-secondary" onclick="closeInviteModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+// --- Terraforming (Customization) Logic ---
+function toggleSettingsModal() {
+    const modal = document.getElementById('terraformingModal');
+    if (modal.style.display === 'none') {
+        modal.style.display = 'flex';
+        // Sync checkboxes with current state
+        loadPreferences(); 
+    } else {
+        modal.style.display = 'none';
+    }
+}
+
+function setTerraformMode(mode) {
+    const body = document.body;
+    const starsCanvas = document.getElementById('starsCanvas');
+    const battleContainer = document.getElementById('battleContainer');
+    
+    // Reset
+    body.classList.remove('bg-nebula');
+    body.style.backgroundColor = '';
+    if (starsCanvas) starsCanvas.style.display = 'none';
+    if (battleContainer) {
+        battleContainer.style.display = 'none';
+        stopBattle();
+    }
+
+    // Apply
+    if (mode === 'void') {
+        body.style.backgroundColor = 'var(--void-black)';
+    } else if (mode === 'nebula') {
+        body.classList.add('bg-nebula');
+    } else if (mode === 'starfield') {
+        body.style.backgroundColor = 'var(--void-black)';
+        if (starsCanvas) starsCanvas.style.display = 'block';
+    } else if (mode === 'battle') {
+        body.style.backgroundColor = 'var(--void-black)';
+        if (starsCanvas) starsCanvas.style.display = 'block'; // Keep stars for battle
+        if (battleContainer) {
+            battleContainer.style.display = 'block';
+            startBattle();
+        }
+    }
+
+    localStorage.setItem('studySesh_bgMode', mode);
+}
+
+// --- Battle Mode Logic ---
+let battleInterval;
+let activeShips = []; // Track ships for collision
+let battleLoopId;
+
+function startBattle() {
+    const container = document.getElementById('battleContainer');
+    if (!container) return;
+    container.innerHTML = ''; // Clear
+    activeShips = [];
+    
+    // Spawn ships loop
+    battleInterval = setInterval(() => {
+        if (activeShips.length < 12) { // Limit max ships for clarity
+            spawnShip(container);
+        }
+    }, 1500); // Slower spawn rate
+
+    // Start Physics Loop
+    updateBattlePhysics();
+}
+
+function stopBattle() {
+    clearInterval(battleInterval);
+    cancelAnimationFrame(battleLoopId);
+    const container = document.getElementById('battleContainer');
+    if (container) container.innerHTML = '';
+    activeShips = [];
+}
+
+function spawnShip(container) {
+    const isBlue = Math.random() > 0.5;
+    const ship = document.createElement('i');
+    
+    // Randomize Ship Type
+    const shipTypes = ['fa-fighter-jet', 'fa-space-shuttle', 'fa-rocket'];
+    const type = shipTypes[Math.floor(Math.random() * shipTypes.length)];
+    
+    // Base rotation offset
+    let rotationOffset = 90;
+    if (type === 'fa-rocket') rotationOffset = 45;
+
+    // Randomize Color
+    let color;
+    if (isBlue) {
+        const blues = ['#00d2ff', '#0077ff', '#00ffaa'];
+        color = blues[Math.floor(Math.random() * blues.length)];
+    } else {
+        const reds = ['#ff4d4d', '#ff9900', '#ff0055'];
+        color = reds[Math.floor(Math.random() * reds.length)];
+    }
+    
+    // Randomize Size
+    const size = Math.floor(Math.random() * 16) + 16; // 16px to 32px
+    
+    ship.className = `fas ${type} battle-ship ${isBlue ? 'ship-blue' : 'ship-red'}`;
+    ship.style.color = color;
+    ship.style.fontSize = `${size}px`;
+    
+    // Initial Position (Edge)
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    let startX, startY;
+    
+    const edge = Math.random();
+    if (edge < 0.25) { startX = -50; startY = Math.random() * height; } // Left
+    else if (edge < 0.5) { startX = width + 50; startY = Math.random() * height; } // Right
+    else if (edge < 0.75) { startX = Math.random() * width; startY = -50; } // Top
+    else { startX = Math.random() * width; startY = height + 50; } // Bottom
+
+    // Initial Velocity (Towards Center)
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const dx = centerX - startX;
+    const dy = centerY - startY;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const speed = Math.random() * 2 + 2;
+    
+    const vx = (dx / dist) * speed;
+    const vy = (dy / dist) * speed;
+
+    ship.style.left = `${startX}px`;
+    ship.style.top = `${startY}px`;
+    container.appendChild(ship);
+    
+    // Add to tracking
+    activeShips.push({ 
+        element: ship, 
+        team: isBlue ? 'blue' : 'red',
+        x: startX,
+        y: startY,
+        vx: vx,
+        vy: vy,
+        maxSpeed: Math.random() * 2 + 3, // 3-5
+        maxForce: 0.15, // Turning ability
+        rotationOffset: rotationOffset,
+        target: null
+    });
+}
+
+function updateBattlePhysics() {
+    const container = document.getElementById('battleContainer');
+    if (!container) return;
+
+    activeShips.forEach(ship => {
+        if (!ship.element.isConnected) return;
+
+        // 1. Find Target (Closest Enemy)
+        if (!ship.target || !ship.target.element.isConnected) {
+            let minDist = Infinity;
+            let closest = null;
+            activeShips.forEach(other => {
+                if (ship.team !== other.team && other.element.isConnected) {
+                    const dx = other.x - ship.x;
+                    const dy = other.y - ship.y;
+                    const d = dx*dx + dy*dy;
+                    if (d < minDist) {
+                        minDist = d;
+                        closest = other;
+                    }
+                }
+            });
+            ship.target = closest;
+        }
+
+        // 2. Calculate Steering
+        let desiredVx = ship.vx;
+        let desiredVy = ship.vy;
+
+        // Separation Force (Prevent Clumping)
+        let sepX = 0;
+        let sepY = 0;
+        let count = 0;
+        const separationDist = 100; // Minimum distance to keep
+
+        activeShips.forEach(other => {
+            if (other !== ship && other.element.isConnected) {
+                const dx = ship.x - other.x;
+                const dy = ship.y - other.y;
+                const d = Math.sqrt(dx*dx + dy*dy);
+                if (d > 0 && d < separationDist) {
+                    // Push away
+                    sepX += (dx / d) / d; // Weight by distance
+                    sepY += (dy / d) / d;
+                    count++;
+                }
+            }
+        });
+
+        if (count > 0) {
+            // Normalize and apply separation
+            const sepLen = Math.sqrt(sepX*sepX + sepY*sepY);
+            if (sepLen > 0) {
+                sepX = (sepX / sepLen) * ship.maxSpeed;
+                sepY = (sepY / sepLen) * ship.maxSpeed;
+                
+                // Apply separation force immediately to desired velocity
+                desiredVx += sepX * 2.0; // High weight for separation
+                desiredVy += sepY * 2.0;
+            }
+        }
+
+        if (ship.target) {
+            // Seek Target
+            let dx = ship.target.x - ship.x;
+            let dy = ship.target.y - ship.y;
+            
+            // Predict target position (Lead the target)
+            dx += ship.target.vx * 15;
+            dy += ship.target.vy * 15;
+            
+            const d = Math.sqrt(dx*dx + dy*dy);
+            if (d > 0) {
+                // Add seeking to desired
+                desiredVx += (dx / d) * ship.maxSpeed;
+                desiredVy += (dy / d) * ship.maxSpeed;
+            }
+        } else {
+            // Wander / Stay in bounds
+            const margin = 100;
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            
+            if (ship.x < margin) desiredVx += ship.maxSpeed;
+            else if (ship.x > width - margin) desiredVx -= ship.maxSpeed;
+            
+            if (ship.y < margin) desiredVy += ship.maxSpeed;
+            else if (ship.y > height - margin) desiredVy -= ship.maxSpeed;
+        }
+
+        // 3. Apply Steering Force (Reynolds)
+        let steerX = desiredVx - ship.vx;
+        let steerY = desiredVy - ship.vy;
+        
+        // Limit force (Swooping effect)
+        const steerLen = Math.sqrt(steerX*steerX + steerY*steerY);
+        if (steerLen > ship.maxForce) {
+            steerX = (steerX / steerLen) * ship.maxForce;
+            steerY = (steerY / steerLen) * ship.maxForce;
+        }
+
+        ship.vx += steerX;
+        ship.vy += steerY;
+
+        // Limit Speed
+        const speed = Math.sqrt(ship.vx*ship.vx + ship.vy*ship.vy);
+        if (speed > ship.maxSpeed) {
+            ship.vx = (ship.vx / speed) * ship.maxSpeed;
+            ship.vy = (ship.vy / speed) * ship.maxSpeed;
+        }
+
+        // 4. Update Position
+        ship.x += ship.vx;
+        ship.y += ship.vy;
+        
+        ship.element.style.left = `${ship.x}px`;
+        ship.element.style.top = `${ship.y}px`;
+        
+        // 5. Rotation
+        const angle = Math.atan2(ship.vy, ship.vx) * (180 / Math.PI);
+        ship.element.style.transform = `rotate(${angle + ship.rotationOffset}deg)`;
+
+        // 6. Shoot Randomly (Only if on screen)
+        const margin = 50;
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        const onScreen = ship.x > margin && ship.x < width - margin && ship.y > margin && ship.y < height - margin;
+
+        if (onScreen && Math.random() < 0.02) {
+            shootLaserVector(ship, container);
+        }
+    });
+
+    // Cleanup dead ships from array
+    activeShips = activeShips.filter(s => s.element.isConnected);
+
+    battleLoopId = requestAnimationFrame(updateBattlePhysics);
+}
+
+function shootLaserVector(shipData, container) {
+    const laser = document.createElement('div');
+    laser.className = 'battle-laser';
+    laser.style.color = shipData.element.style.color;
+    
+    // Laser speed vector (faster than ship)
+    const laserSpeed = 12;
+    const speed = Math.sqrt(shipData.vx*shipData.vx + shipData.vy*shipData.vy);
+    const dirX = shipData.vx / speed;
+    const dirY = shipData.vy / speed;
+    
+    const vx = dirX * laserSpeed;
+    const vy = dirY * laserSpeed;
+    
+    // Start at ship center
+    let lx = shipData.x + 15; 
+    let ly = shipData.y + 15;
+    
+    // Laser angle matches ship angle (minus offset)
+    const angle = Math.atan2(shipData.vy, shipData.vx) * (180 / Math.PI);
+    
+    laser.style.left = `${lx}px`;
+    laser.style.top = `${ly}px`;
+    laser.style.transform = `rotate(${angle}deg)`;
+    
+    container.appendChild(laser);
+    
+    function moveLaser() {
+        if (!laser.isConnected) return;
+        lx += vx;
+        ly += vy;
+        
+        laser.style.left = `${lx}px`;
+        laser.style.top = `${ly}px`;
+        
+        // Collision
+        const laserRect = laser.getBoundingClientRect();
+        for (let i = 0; i < activeShips.length; i++) {
+            const target = activeShips[i];
+            if (target.team !== shipData.team) {
+                const shipRect = target.element.getBoundingClientRect();
+                if (laserRect.left < shipRect.right && laserRect.right > shipRect.left &&
+                    laserRect.top < shipRect.bottom && laserRect.bottom > shipRect.top) {
+                    
+                    createExplosion(shipRect.left + shipRect.width/2, shipRect.top + shipRect.height/2, container);
+                    target.element.remove();
+                    laser.remove();
+                    return;
+                }
+            }
+        }
+        
+        if (lx < -50 || lx > window.innerWidth + 50 || ly < -50 || ly > window.innerHeight + 50) {
+            laser.remove();
+        } else {
+            requestAnimationFrame(moveLaser);
+        }
+    }
+    requestAnimationFrame(moveLaser);
+}
+
+function createExplosion(x, y, container) {
+    const explosion = document.createElement('i');
+    explosion.className = 'fas fa-bomb battle-explosion';
+    explosion.style.left = (x - 12) + 'px'; // Center
+    explosion.style.top = (y - 12) + 'px';
+    container.appendChild(explosion);
+    
+    // Auto remove after animation
+    setTimeout(() => {
+        if (explosion.isConnected) explosion.remove();
+    }, 500);
+}
+
+function toggleWidget(id) {
+    const widget = document.getElementById(id);
+    const checkbox = document.querySelector(`input[onchange="toggleWidget('${id}')"]`);
+    
+    if (widget) {
+        const isVisible = checkbox.checked;
+        widget.style.display = isVisible ? 'block' : 'none';
+        
+        // Save state
+        const hiddenWidgets = JSON.parse(localStorage.getItem('studySesh_hiddenWidgets')) || [];
+        if (!isVisible) {
+            if (!hiddenWidgets.includes(id)) hiddenWidgets.push(id);
+        } else {
+            const index = hiddenWidgets.indexOf(id);
+            if (index > -1) hiddenWidgets.splice(index, 1);
+        }
+        localStorage.setItem('studySesh_hiddenWidgets', JSON.stringify(hiddenWidgets));
+    }
+}
+
+function loadPreferences() {
+    // Load Background
+    const bgMode = localStorage.getItem('studySesh_bgMode') || 'starfield'; 
+    setTerraformMode(bgMode);
+
+    // Load Widgets
+    const hiddenWidgets = JSON.parse(localStorage.getItem('studySesh_hiddenWidgets')) || [];
+    
+    ['pomodoroPanel', 'timelinePanel', 'audioPanel'].forEach(id => {
+        const widget = document.getElementById(id);
+        // Find checkbox by the onclick attribute we set
+        const checkbox = document.querySelector(`input[onchange="toggleWidget('${id}')"]`);
+        
+        if (hiddenWidgets.includes(id)) {
+            if (widget) widget.style.display = 'none';
+            if (checkbox) checkbox.checked = false;
+        } else {
+            if (widget) widget.style.display = 'block';
+            if (checkbox) checkbox.checked = true;
+        }
+    });
+}
+
+// --- Global Timeline Logic ---
+// We define these globally to ensure onclick handlers can access them reliably.
+let timelineItems = [];
+try {
+    timelineItems = JSON.parse(localStorage.getItem('studySesh_timeline')) || [];
+    if (!Array.isArray(timelineItems)) timelineItems = [];
+} catch (e) {
+    console.error("Error loading timeline:", e);
+    timelineItems = [];
+}
+
+function saveTimeline() {
+    localStorage.setItem('studySesh_timeline', JSON.stringify(timelineItems));
+    renderTimeline();
+}
+
+function formatTMinus(dueDateStr) {
+    const now = new Date();
+    const due = new Date(dueDateStr);
+    
+    if (isNaN(due.getTime())) return { text: "Invalid Date", color: "bg-secondary" };
+
+    const diffMs = due - now;
+
+    if (diffMs < 0) return { text: "Mission Complete", color: "bg-success" };
+
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+    let text = "T-minus ";
+    let color = "bg-info text-dark";
+
+    if (diffDays > 0) {
+        text += `${diffDays}d ${diffHours}h`;
+        if (diffDays < 3) color = "bg-warning text-dark";
+    } else {
+        text += `${diffHours}h ${diffMinutes}m`;
+        color = "bg-danger";
+    }
+    
+    return { text, color };
+}
+
+function renderTimeline() {
+    const timelineList = document.getElementById('timelineList');
+    const timelineEmptyState = document.getElementById('timelineEmptyState');
+    
+    if (!timelineList) return;
+    
+    timelineList.innerHTML = '';
+    if (timelineItems.length === 0) {
+        if (timelineEmptyState) timelineEmptyState.style.display = 'block';
+    } else {
+        if (timelineEmptyState) timelineEmptyState.style.display = 'none';
+        
+        // Sort by due date
+        timelineItems.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        timelineItems.forEach((item, index) => {
+            const status = formatTMinus(item.date);
+            const li = document.createElement('li');
+            li.className = 'list-group-item bg-transparent border-secondary text-starlight px-0';
+            li.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="fw-bold">${item.name}</span>
+                    <button class="btn btn-sm btn-link text-danger p-0 delete-timeline" onclick="deleteTimelineItem(${index})"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-starlight-muted" style="font-size: 0.75rem;">${new Date(item.date).toLocaleDateString()} ${new Date(item.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</small>
+                    <span class="badge ${status.color}">${status.text}</span>
+                </div>
+            `;
+            timelineList.appendChild(li);
+        });
+    }
+}
+
+function deleteTimelineItem(index) {
+    timelineItems.splice(index, 1);
+    saveTimeline();
+}
+
+function addTimelineItem() {
+    console.log("addTimelineItem called");
+    const timelineNameInput = document.getElementById('timelineName');
+    const timelineDateInput = document.getElementById('timelineDate');
+    const timelineForm = document.getElementById('timelineForm');
+    const toggleTimelineFormBtn = document.getElementById('toggleTimelineForm');
+    
+    if (!timelineNameInput || !timelineDateInput) {
+        console.error("Inputs not found");
+        return;
+    }
+
+    const name = timelineNameInput.value.trim();
+    const date = timelineDateInput.value;
+    
+    if (name && date) {
+        timelineItems.push({ name, date });
+        saveTimeline();
+        timelineNameInput.value = '';
+        timelineDateInput.value = '';
+        
+        if (timelineForm) timelineForm.style.display = 'none';
+        
+        // Reset icon
+        if (toggleTimelineFormBtn) {
+            const icon = toggleTimelineFormBtn.querySelector('i');
+            if (icon) {
+                icon.classList.remove('fa-minus');
+                icon.classList.add('fa-plus');
+            }
+        }
+    } else {
+        alert("Please enter both a mission name and a target date.");
+    }
+}
+
+// Global function for timeline toggle
+function toggleTimeline(e) {
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    console.log("Global toggleTimeline called");
+    
+    const form = document.getElementById('timelineForm');
+    const btn = document.getElementById('toggleTimelineForm');
+    const input = document.getElementById('timelineName');
+    
+    if (!form || !btn) {
+        console.error("Elements not found", { form, btn });
+        return;
+    }
+    
+    // Check computed style as fallback
+    const isHidden = form.style.display === 'none' || form.style.display === '' || getComputedStyle(form).display === 'none';
+    
+    if (isHidden) {
+        form.style.display = 'block';
+        if (input) input.focus();
+        
+        const icon = btn.querySelector('i');
+        if (icon) {
+            icon.classList.remove('fa-plus');
+            icon.classList.add('fa-minus');
+        }
+    } else {
+        form.style.display = 'none';
+        
+        const icon = btn.querySelector('i');
+        if (icon) {
+            icon.classList.remove('fa-minus');
+            icon.classList.add('fa-plus');
+        }
+    }
+}
+
+// --- Multiplayer / Docking Logic (Global Scope) ---
+const roomId = "{{ room_id }}";
+const currentUserId = "{{ user_id }}";
+let lastMsgId = 0;
+let commsOpen = false;
+
+function toggleComms() {
+    const panel = document.getElementById('commsPanel');
+    const icon = document.getElementById('commsToggleIcon');
+    if (commsOpen) {
+        panel.style.transform = 'translateY(260px)';
+        icon.classList.remove('fa-chevron-down');
+        icon.classList.add('fa-chevron-up');
+    } else {
+        panel.style.transform = 'translateY(0)';
+        icon.classList.remove('fa-chevron-up');
+        icon.classList.add('fa-chevron-down');
+    }
+    commsOpen = !commsOpen;
+}
+
+function copyInviteLink() {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url).then(() => {
+        alert("Transponder Signal Copied! Share this link with your crew.");
+    });
+}
+
+function handleChatKey(e) {
+    if (e.key === 'Enter') sendChat();
+}
+
+function sendChat() {
+    const input = document.getElementById('chatInput');
+    const content = input.value.trim();
+    if (!content) return;
+
+    fetch("{% url 'study_session:send_message' %}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            room_id: roomId,
+            content: content
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'ok') {
+            input.value = '';
+            pollRoomData(); // Immediate update
+        }
+    });
+}
+
+function pollRoomData() {
+    fetch(`{% url 'study_session:get_room_data' %}?room_id=${roomId}&last_msg_id=${lastMsgId}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.crew) updateCrew(data.crew);
+            if (data.messages) updateMessages(data.messages);
+        })
+        .catch(err => console.error("Comms Error:", err));
+}
+
+function updateCrew(crew) {
+    const list = document.getElementById('crewList');
+    const count = document.getElementById('crewCount');
+    if (!list || !count) return; // Safety check
+    
+    count.innerText = crew.length;
+    
+    list.innerHTML = '';
+    crew.forEach(member => {
+        const isMe = member.is_me ? ' (You)' : '';
+        const statusColor = member.status === 'studying' ? 'bg-success' : 'bg-warning';
+        
+        const li = document.createElement('li');
+        li.className = 'list-group-item bg-transparent border-secondary text-starlight d-flex align-items-center';
+        li.innerHTML = `
+            <div class="rounded-circle ${statusColor} me-2" style="width: 8px; height: 8px;" title="${member.status}"></div>
+            <span>${member.username}${isMe}</span>
+        `;
+        list.appendChild(li);
+        
+        // Update Avatar (Simple implementation)
+        updateAvatar(member);
+    });
+}
+
+function updateMessages(messages) {
+    const chatBox = document.getElementById('chatMessages');
+    if (!chatBox) return;
+
+    // Check if user is near bottom before adding messages
+    const isNearBottom = chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight < 50;
+    
+    let newMessages = false;
+    messages.forEach(msg => {
+        if (msg.id > lastMsgId) {
+            const div = document.createElement('div');
+            div.className = 'mb-2 p-2 rounded';
+            div.style.background = 'rgba(30, 76, 132, 0.3)';
+            div.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <strong class="text-info small">${msg.user}</strong>
+                    <span class="text-starlight-muted small" style="font-size: 0.7rem;">${msg.timestamp}</span>
+                </div>
+                <div class="text-starlight">${msg.content}</div>
+            `;
+            chatBox.appendChild(div);
+            lastMsgId = msg.id;
+            newMessages = true;
+        }
+    });
+    
+    if (newMessages) {
+        // Play notification sound if panel is closed
+        if (!commsOpen) {
+            playNotificationSound();
+            // Flash the toggle button
+            const header = document.querySelector('#commsPanel .mission-panel-header');
+            if (header) {
+                header.classList.add('bg-info');
+                setTimeout(() => header.classList.remove('bg-info'), 1000);
+            }
+        }
+
+        // Auto-scroll if user was already at bottom
+        if (isNearBottom) {
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+    }
+}
+
+function playNotificationSound() {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(500, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(1000, ctx.currentTime + 0.1);
+    
+    gain.gain.setValueAtTime(0.1, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+    
+    osc.start();
+    osc.stop(ctx.currentTime + 0.1);
+}
+
+// Simple Avatar Management
+const avatars = {};
+function updateAvatar(member) {
+    if (member.is_me) return; // Don't show self avatar for now
+    
+    let avatar = avatars[member.id];
+    if (!avatar) {
+        avatar = document.createElement('div');
+        avatar.className = 'position-absolute text-center';
+        avatar.style.transition = 'all 2s ease-in-out';
+        avatar.style.zIndex = '5';
+        avatar.innerHTML = `
+            <i class="fas fa-user-astronaut fa-2x text-starlight"></i>
+            <div class="small text-starlight mt-1">${member.username}</div>
+        `;
+        const stage = document.querySelector('.main-stage');
+        if (stage) stage.appendChild(avatar);
+        avatars[member.id] = avatar;
+        
+        // Random initial position
+        moveAvatar(avatar);
+        setInterval(() => moveAvatar(avatar), 5000);
+    }
+}
+
+function moveAvatar(el) {
+    const x = Math.random() * 80 + 10; // 10% to 90%
+    const y = Math.random() * 60 + 20; // 20% to 80%
+    el.style.left = x + '%';
+    el.style.top = y + '%';
+}
+
+// --- Invite / Friend Logic ---
+function openInviteModal() {
+    document.getElementById('inviteModal').style.display = 'flex';
+    loadFriends();
+}
+
+function closeInviteModal() {
+    document.getElementById('inviteModal').style.display = 'none';
+}
+
+function switchInviteTab(tab) {
+    const tabs = document.querySelectorAll('#inviteModal .nav-link');
+    if (tab === 'friends') {
+        document.getElementById('inviteFriendsTab').style.display = 'block';
+        document.getElementById('inviteSearchTab').style.display = 'none';
+        tabs[0].classList.add('active');
+        tabs[1].classList.remove('active');
+        loadFriends();
+    } else {
+        document.getElementById('inviteFriendsTab').style.display = 'none';
+        document.getElementById('inviteSearchTab').style.display = 'block';
+        tabs[1].classList.add('active');
+        tabs[0].classList.remove('active');
+    }
+}
+
+function loadFriends() {
+    fetch("{% url 'study_session:get_friends' %}")
+        .then(res => res.json())
+        .then(data => {
+            const container = document.getElementById('inviteFriendsTab');
+            if (data.friends.length === 0) {
+                container.innerHTML = '<div class="text-center text-starlight-muted mt-4">No friends found. Search to add some!</div>';
+                return;
+            }
+            container.innerHTML = '<ul class="list-group list-group-flush">' + 
+                data.friends.map(f => `
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>${f.username}</span>
+                        <button class="btn btn-sm btn-outline-info" onclick="inviteUser('${f.username}')">Invite</button>
+                    </li>
+                `).join('') + '</ul>';
+        });
+}
+
+function searchUsers() {
+    const query = document.getElementById('userSearchInput').value;
+    if (query.length < 1) return;
+    
+    fetch(`{% url 'study_session:search_users' %}?q=${query}`)
+        .then(res => res.json())
+        .then(data => {
+            const container = document.getElementById('userSearchResults');
+            if (data.users.length === 0) {
+                container.innerHTML = '<div class="text-center text-starlight-muted mt-2">No users found.</div>';
+                return;
+            }
+            container.innerHTML = '<ul class="list-group list-group-flush">' + 
+                data.users.map(u => `
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>${u.username}</span>
+                        ${u.is_friend ? 
+                            '<span class="badge bg-success">Friend</span>' : 
+                            `<button class="btn btn-sm btn-outline-primary" onclick="addFriend(${u.id})">Add Friend</button>`
+                        }
+                    </li>
+                `).join('') + '</ul>';
+        });
+}
+
+function addFriend(userId) {
+    fetch("{% url 'study_session:add_friend' %}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ user_id: userId })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'ok') {
+            searchUsers(); // Refresh list
+        }
+    });
+}
+
+function inviteUser(username) {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url).then(() => {
+        alert(`Link copied! Send it to ${username} to invite them.`);
+    });
+}
+
+// --- Cargo Bay (File Sharing) Logic ---
+function handleDragOver(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    document.getElementById('cargoDropZone').classList.add('drop-zone-active');
+}
+
+function handleDragLeave(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    document.getElementById('cargoDropZone').classList.remove('drop-zone-active');
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    document.getElementById('cargoDropZone').classList.remove('drop-zone-active');
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        handleUpload(files[0]);
+    }
+}
+
+function handleFileSelect(e) {
+    const files = e.target.files;
+    if (files.length > 0) {
+        handleUpload(files[0]);
+    }
+}
+
+function handleUpload(file) {
+    const progressDiv = document.getElementById('cargoProgress');
+    const progressBar = progressDiv.querySelector('.progress-bar');
+    const percentSpan = document.getElementById('cargoPercent');
+    
+    progressDiv.style.display = 'block';
+    let progress = 0;
+    
+    const interval = setInterval(() => {
+        progress += 5;
+        progressBar.style.width = progress + '%';
+        percentSpan.innerText = progress + '%';
+        
+        if (progress >= 100) {
+            clearInterval(interval);
+            setTimeout(() => {
+                progressDiv.style.display = 'none';
+                progressBar.style.width = '0%';
+                addFileToList(file);
+                playSuccessSound();
+            }, 500);
+        }
+    }, 100); // 2 seconds total (100ms * 20 steps)
+}
+
+function addFileToList(file) {
+    const list = document.getElementById('cargoList');
+    const emptyState = document.getElementById('cargoEmptyState');
+    if (emptyState) emptyState.style.display = 'none';
+    
+    const iconClass = file.type.includes('image') ? 'fa-file-image' : 
+                      file.type.includes('pdf') ? 'fa-file-pdf' : 'fa-file-alt';
+    
+    const div = document.createElement('div');
+    div.className = 'cargo-item d-flex align-items-center';
+    div.innerHTML = `
+        <i class="fas ${iconClass} text-info me-2"></i>
+        <div class="flex-grow-1 overflow-hidden">
+            <div class="text-starlight small text-truncate">${file.name}</div>
+            <div class="text-starlight-muted" style="font-size: 0.7rem;">From: You</div>
+        </div>
+        <i class="fas fa-eye text-starlight-muted small"></i>
+    `;
+    
+    // Store file object for viewing
+    div.onclick = () => openViewer(file);
+    
+    list.insertBefore(div, list.firstChild);
+}
+
+// --- Holographic Viewer Logic ---
+function openViewer(file) {
+    const viewer = document.getElementById('hologramViewer');
+    const title = document.getElementById('hologramTitle');
+    const content = document.getElementById('hologramContent');
+    
+    title.innerText = file.name;
+    content.innerHTML = ''; // Clear previous content
+    
+    // Robust File Type Detection
+    const isImage = file.type.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(file.name);
+    const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+    const isText = file.type.startsWith('text/') || /\.(txt|md|py|js|html|css|json|csv|log)$/i.test(file.name);
+
+    if (isImage) {
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(file);
+        img.style.maxWidth = '100%';
+        img.style.maxHeight = '100%';
+        img.style.display = 'block';
+        img.style.margin = '0 auto';
+        content.appendChild(img);
+    } else if (isPdf) {
+        // Mock PDF Viewer
+        content.innerHTML = `
+            <div class="mock-pdf-page">
+                <div class="text-center mb-4">
+                    <h3 class="text-dark">${file.name}</h3>
+                    <hr>
+                </div>
+                <div class="mock-text-line"></div>
+                <div class="mock-text-line"></div>
+                <div class="mock-text-line" style="width: 60%"></div>
+                <br>
+                <div class="mock-text-line"></div>
+                <div class="mock-text-line"></div>
+                <div class="mock-text-line"></div>
+                <div class="mock-text-line" style="width: 80%"></div>
+                <br>
+                <div class="text-center text-muted mt-5">
+                    <i class="fas fa-file-pdf fa-3x"></i>
+                    <p class="mt-2">PDF Preview Simulation</p>
+                </div>
+            </div>
+        `;
+    } else if (isText) {
+        // Text / Code
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const pre = document.createElement('pre');
+            pre.className = 'text-starlight small';
+            pre.style.whiteSpace = 'pre-wrap';
+            pre.style.fontFamily = "'Courier New', monospace";
+            pre.innerText = e.target.result || "Error reading file content.";
+            content.appendChild(pre);
+        };
+        reader.readAsText(file);
+    } else {
+        // Binary / Unknown
+        content.innerHTML = `
+            <div class="d-flex flex-column align-items-center justify-content-center h-100 text-starlight-muted">
+                <i class="fas fa-file-binary fa-4x mb-3"></i>
+                <h5>Binary Data Detected</h5>
+                <p>Cannot preview this file type in Holographic Mode.</p>
+                <div class="small text-info">${file.type || 'Unknown Type'}</div>
+            </div>
+        `;
+    }
+    
+    viewer.style.display = 'flex';
+    makeDraggable(document.getElementById('hologramViewer'), document.getElementById('hologramHeader'));
+}
+
+function closeViewer() {
+    document.getElementById('hologramViewer').style.display = 'none';
+}
+
+function playSuccessSound() {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, ctx.currentTime); // A5
+    osc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.1); // A6
+    
+    gain.gain.setValueAtTime(0.1, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+    
+    osc.start();
+    osc.stop(ctx.currentTime + 0.3);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Load Terraforming Preferences
+    loadPreferences();
+
+    // Initial render of timeline
+    renderTimeline();
+    // Update T-minus every minute
+    setInterval(renderTimeline, 60000);
+
+    // --- Sidebar Toggle Logic ---
+    const leftSidebar = document.getElementById('leftSidebar');
+    const rightSidebar = document.getElementById('rightSidebar');
+    const toggleLeft = document.getElementById('toggleLeft');
+    const toggleRight = document.getElementById('toggleRight');
+
+    toggleLeft.addEventListener('click', () => {
+        leftSidebar.classList.toggle('collapsed');
+        const icon = toggleLeft.querySelector('i');
+        if (leftSidebar.classList.contains('collapsed')) {
+            icon.classList.remove('fa-chevron-left');
+            icon.classList.add('fa-chevron-right');
+            toggleLeft.style.left = '1rem';
+        } else {
+            icon.classList.remove('fa-chevron-right');
+            icon.classList.add('fa-chevron-left');
+            // toggleLeft.style.left = '360px'; // Optional: move button with sidebar
+        }
+    });
+
+    toggleRight.addEventListener('click', () => {
+        rightSidebar.classList.toggle('collapsed');
+        const icon = toggleRight.querySelector('i');
+        if (rightSidebar.classList.contains('collapsed')) {
+            icon.classList.remove('fa-chevron-right');
+            icon.classList.add('fa-chevron-left');
+            toggleRight.style.right = '1rem';
+        } else {
+            icon.classList.remove('fa-chevron-left');
+            icon.classList.add('fa-chevron-right');
+            // toggleRight.style.right = '360px'; // Optional: move button with sidebar
+        }
+    });
+
+    // --- Timer Logic ---
+    let timeLeft = 25 * 60;
+    let timerId = null;
+    let isRunning = false;
+    let activeAlarm = null;
+    let activeAlarmInterval = null;
+    
+    const minutesDisplay = document.getElementById('minutes');
+    const secondsDisplay = document.getElementById('seconds');
+    const startBtn = document.getElementById('startBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const modeBtns = document.querySelectorAll('.mode-btn');
+
+    // Load saved timer mode
+    const savedMode = localStorage.getItem('studySesh_timerMode') || '25';
+    const activeBtn = document.querySelector(`.mode-btn[data-time='${savedMode}']`);
+    if (activeBtn) {
+        modeBtns.forEach(b => b.classList.remove('active'));
+        activeBtn.classList.add('active');
+        timeLeft = parseInt(savedMode) * 60;
+    }
+    updateDisplay();
+
+    function updateDisplay() {
+        const m = Math.floor(timeLeft / 60);
+        const s = timeLeft % 60;
+        minutesDisplay.textContent = m.toString().padStart(2, '0');
+        secondsDisplay.textContent = s.toString().padStart(2, '0');
+        document.title = `${m}:${s.toString().padStart(2, '0')} - Study Sesh`;
+    }
+
+    function startTimer() {
+        if (isRunning) return;
+        isRunning = true;
+        startBtn.style.display = 'none';
+        pauseBtn.style.display = 'inline-block';
+        
+        timerId = setInterval(() => {
+            if (timeLeft > 0) {
+                timeLeft--;
+                updateDisplay();
+            } else {
+                clearInterval(timerId);
+                isRunning = false;
+                startBtn.style.display = 'inline-block';
+                pauseBtn.style.display = 'none';
+                
+                // Start Alarm Loop
+                playTimerSound();
+                
+                // Show Modal
+                document.getElementById('alarmModal').style.display = 'flex';
+            }
+        }, 1000);
+    }
+
+    function dismissAlarm() {
+        document.getElementById('alarmModal').style.display = 'none';
+        stopAlarm();
+    }
+
+    function stopAlarm() {
+        if (activeAlarm) {
+            activeAlarm.pause();
+            activeAlarm.currentTime = 0;
+            activeAlarm = null;
+        }
+        if (activeAlarmInterval) {
+            clearInterval(activeAlarmInterval);
+            activeAlarmInterval = null;
+        }
+    }
+
+    function playTimerSound() {
+        // Try to play a file if it exists
+        const audio = new Audio('/static/audio/timer_end.mp3');
+        audio.loop = true;
+        audio.play().then(() => {
+            activeAlarm = audio;
+        }).catch(e => {
+            console.log("Audio file not found or blocked, playing fallback beep.");
+            playFallbackBeep();
+        });
+    }
+
+    function playFallbackBeep() {
+        // Play a beep immediately, then every 1 second
+        beepOnce();
+        activeAlarmInterval = setInterval(beepOnce, 1000);
+    }
+
+    function beepOnce() {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, ctx.currentTime); // High pitch
+        osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.5); // Drop pitch
+
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+
+        osc.start();
+        osc.stop(ctx.currentTime + 0.5);
+    }
+
+    function pauseTimer() {
+        clearInterval(timerId);
+        isRunning = false;
+        startBtn.style.display = 'inline-block';
+        pauseBtn.style.display = 'none';
+    }
+
+    function resetTimer() {
+        pauseTimer();
+        const activeMode = document.querySelector('.mode-btn.active');
+        timeLeft = parseInt(activeMode.dataset.time) * 60;
+        updateDisplay();
+    }
+
+    startBtn.addEventListener('click', startTimer);
+    pauseBtn.addEventListener('click', pauseTimer);
+    resetBtn.addEventListener('click', resetTimer);
+
+    modeBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            modeBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const time = btn.dataset.time;
+            timeLeft = parseInt(time) * 60;
+            localStorage.setItem('studySesh_timerMode', time); // Save preference
+            updateDisplay();
+            pauseTimer();
+        });
+    });
+
+    // --- Nav Computer (Floating Windows) Logic ---
+    
+    // Toggle Window Visibility
+    window.toggleWindow = function(id) {
+        const win = document.getElementById(id);
+        if (win.style.display === 'block') {
+            win.style.display = 'none';
+        } else {
+            win.style.display = 'block';
+            // Bring to front
+            document.querySelectorAll('.floating-window').forEach(w => w.style.zIndex = 100);
+            win.style.zIndex = 101;
+        }
+    };
+
+    // Draggable Logic
+    function makeDraggable(elmnt, handle) {
+        let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+        const header = handle || elmnt.querySelector('.window-header');
+        
+        if (header) {
+            header.onmousedown = dragMouseDown;
+        }
+
+        function dragMouseDown(e) {
+            e = e || window.event;
+            e.preventDefault();
+            // Get mouse cursor position at startup
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            document.onmouseup = closeDragElement;
+            document.onmousemove = elementDrag;
+            
+            // Bring to front
+            document.querySelectorAll('.floating-window, .hologram-window').forEach(w => w.style.zIndex = 100);
+            elmnt.style.zIndex = 1100; // Higher for hologram
+        }
+
+        function elementDrag(e) {
+            e = e || window.event;
+            e.preventDefault();
+            // Calculate new cursor position
+            pos1 = pos3 - e.clientX;
+            pos2 = pos4 - e.clientY;
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            // Set element's new position
+            elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+            elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+        }
+
+        function closeDragElement() {
+            // Stop moving when mouse button is released
+            document.onmouseup = null;
+            document.onmousemove = null;
+        }
+    }
+
+    // Initialize Draggables
+    makeDraggable(document.getElementById("calculatorWindow"));
+    makeDraggable(document.getElementById("notepadWindow"));
+    makeDraggable(document.getElementById("linksWindow"));
+
+    // Calculator Logic
+    let calcExpression = "";
+    const display = document.getElementById('calcDisplay');
+    
+    window.calcInput = function(val) {
+        calcExpression += val;
+        display.value = calcExpression;
+    };
+    
+    window.calcOp = function(op) {
+        calcExpression += op;
+        display.value = calcExpression;
+    };
+
+    window.calcFunc = function(func) {
+        if (func === 'sqrt') {
+            calcExpression += 'Math.sqrt(';
+        } else if (func === 'ln') {
+            calcExpression += 'Math.log(';
+        } else if (func === 'log') {
+            calcExpression += 'Math.log10(';
+        } else {
+            calcExpression += `Math.${func}(`;
+        }
+        display.value = calcExpression;
+    };
+    
+    window.calcResult = function() {
+        try {
+            // Use Function constructor for safer eval alternative
+            // Replace visual operators with JS operators if needed
+            let evalExpr = calcExpression;
+            const result = new Function('return ' + evalExpr)();
+            
+            // Format result (limit decimals)
+            const formatted = Math.round(result * 100000000) / 100000000;
+            display.value = formatted;
+            calcExpression = formatted.toString();
+        } catch (e) {
+            display.value = "Error";
+            calcExpression = "";
+        }
+    };
+    
+    window.calcClear = function() {
+        calcExpression = "";
+        display.value = "";
+    };
+
+    window.calcBackspace = function() {
+        calcExpression = calcExpression.slice(0, -1);
+        display.value = calcExpression;
+    };
+
+    // Notepad Logic (Persistence)
+    const scratchpad = document.getElementById('scratchpad');
+    const saveStatus = document.getElementById('saveStatus');
+    let saveTimeout;
+
+    const savedNote = localStorage.getItem('studySesh_scratchpad');
+    if (savedNote) {
+        scratchpad.value = savedNote;
+    }
+    
+    window.saveScratchpad = function() {
+        localStorage.setItem('studySesh_scratchpad', scratchpad.value);
+        
+        // Visual Feedback
+        if (saveStatus) {
+            saveStatus.innerText = "Saving...";
+            saveStatus.style.opacity = '1';
+            saveStatus.classList.remove('text-success');
+            saveStatus.classList.add('text-warning');
+            
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(() => {
+                saveStatus.innerText = "Saved";
+                saveStatus.classList.remove('text-warning');
+                saveStatus.classList.add('text-success');
+                setTimeout(() => {
+                    saveStatus.style.opacity = '0';
+                }, 2000);
+            }, 500);
+        }
+    };
+
+    window.downloadNote = function() {
+        const text = scratchpad.value;
+        if (!text) return;
+        
+        const blob = new Blob([text], { type: "text/plain" });
+        const anchor = document.createElement("a");
+        anchor.download = "mission-log-" + new Date().toISOString().slice(0,10) + ".txt";
+        anchor.href = window.URL.createObjectURL(blob);
+        anchor.target = "_blank";
+        anchor.style.display = "none";
+        document.body.appendChild(anchor);
+        anchor.click();
+        document.body.removeChild(anchor);
+    };
+
+    // --- Quick Links Logic ---
+    let customLinks = [];
+    try {
+        customLinks = JSON.parse(localStorage.getItem('studySesh_links')) || [];
+    } catch (e) {
+        customLinks = [];
+    }
+
+    function renderLinks() {
+        const list = document.getElementById('linksList');
+        // Keep default links (first 2 items)
+        const defaults = `
+            <li class="list-group-item bg-transparent border-secondary px-0 d-flex justify-content-between align-items-center">
+                <a href="https://canvas.instructure.com" target="_blank" class="text-info text-decoration-none"><i class="fas fa-university me-2"></i>Canvas</a>
+            </li>
+            <li class="list-group-item bg-transparent border-secondary px-0 d-flex justify-content-between align-items-center">
+                <a href="https://chatgpt.com" target="_blank" class="text-info text-decoration-none"><i class="fas fa-robot me-2"></i>ChatGPT</a>
+            </li>
+        `;
+        
+        let customHtml = '';
+        customLinks.forEach((link, index) => {
+            customHtml += `
+                <li class="list-group-item bg-transparent border-secondary px-0 d-flex justify-content-between align-items-center">
+                    <a href="${link.url}" target="_blank" class="text-info text-decoration-none">
+                        <i class="fas fa-link me-2"></i>${link.name}
+                    </a>
+                    <button class="btn btn-sm btn-link text-danger p-0" onclick="deleteCustomLink(${index})"><i class="fas fa-times"></i></button>
+                </li>
+            `;
+        });
+        
+        list.innerHTML = defaults + customHtml;
+    }
+
+    window.handleLinkSearch = function(e) {
+        if (e.key === 'Enter') searchAndAddLink();
+    };
+
+    window.searchAndAddLink = function() {
+        const input = document.getElementById('linkSearchInput');
+        const status = document.getElementById('linkSearchStatus');
+        const query = input.value.trim();
+        
+        if (!query) return;
+
+        status.style.display = 'block';
+        status.innerText = `Searching for "${query}"...`;
+
+        // Simple heuristic for common sites to avoid API complexity for now
+        // In a real app, this would call a backend proxy to Google Search API or similar
+        let url = "";
+        let name = query;
+
+        const commonSites = {
+            "canvas": "https://canvas.instructure.com",
+            "google": "https://google.com",
+            "gmail": "https://mail.google.com",
+            "youtube": "https://youtube.com",
+            "github": "https://github.com",
+            "chatgpt": "https://chatgpt.com",
+            "scholar": "https://scholar.google.com",
+            "wikipedia": "https://wikipedia.org",
+            "amazon": "https://amazon.com",
+            "netflix": "https://netflix.com",
+            "spotify": "https://spotify.com",
+            "gradescope": "https://gradescope.com",
+            "chegg": "https://chegg.com",
+            "quizlet": "https://quizlet.com"
+        };
+
+        const lowerQuery = query.toLowerCase();
+        
+        // Check exact match in dictionary
+        if (commonSites[lowerQuery]) {
+            url = commonSites[lowerQuery];
+            name = query.charAt(0).toUpperCase() + query.slice(1); // Capitalize
+        } 
+        // Check if user typed a full URL
+        else if (lowerQuery.includes('.') && !lowerQuery.includes(' ')) {
+             if (!lowerQuery.startsWith('http')) {
+                url = 'https://' + lowerQuery;
+            } else {
+                url = lowerQuery;
+            }
+        }
+        // Fallback: Google "I'm Feeling Lucky" style search
+        else {
+            url = `https://www.google.com/search?q=${encodeURIComponent(query)}&btnI=1`;
+        }
+
+        // Simulate network delay for UX
+        setTimeout(() => {
+            customLinks.push({ name, url });
+            localStorage.setItem('studySesh_links', JSON.stringify(customLinks));
+            renderLinks();
+            input.value = '';
+            status.style.display = 'none';
+        }, 500);
+    };
+
+    window.deleteCustomLink = function(index) {
+        customLinks.splice(index, 1);
+        localStorage.setItem('studySesh_links', JSON.stringify(customLinks));
+        renderLinks();
+    };
+
+    // Initial Render
+    renderLinks();
+
+    // --- Ambience Logic ---
+    const playButtons = document.querySelectorAll('.play-sound');
+    const volumeControl = document.getElementById('volumeControl');
+    let currentAudio = null;
+
+    playButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const soundId = btn.dataset.sound;
+            const audio = document.getElementById(`audio-${soundId}`);
+            const icon = btn.querySelector('i');
+
+            if (currentAudio && currentAudio !== audio) {
+                currentAudio.pause();
+                currentAudio.currentTime = 0;
+                // Reset other icons
+                document.querySelectorAll('.play-sound i').forEach(i => {
+                    i.classList.remove('fa-stop');
+                    i.classList.add('fa-play');
+                });
+            }
+
+            if (audio.paused) {
+                audio.volume = volumeControl.value;
+                audio.play();
+                icon.classList.remove('fa-play');
+                icon.classList.add('fa-stop');
+                currentAudio = audio;
+            } else {
+                audio.pause();
+                icon.classList.remove('fa-stop');
+                icon.classList.add('fa-play');
+                currentAudio = null;
+            }
+        });
+    });
+
+    volumeControl.addEventListener('input', (e) => {
+        if (currentAudio) {
+            currentAudio.volume = e.target.value;
+        }
+    });
+
+    // --- Task Logic (Mission Log) ---
+    const taskInput = document.getElementById('taskInput');
+    const addTaskBtn = document.getElementById('addTaskBtn');
+    const taskList = document.getElementById('taskList');
+
+    // Load saved tasks
+    let savedTasks = [];
+    try {
+        savedTasks = JSON.parse(localStorage.getItem('studySesh_tasks')) || [];
+    } catch (e) {
+        console.error("Error loading tasks:", e);
+        savedTasks = [];
+    }
+    
+    if (Array.isArray(savedTasks)) {
+        savedTasks.forEach(taskText => createTaskElement(taskText));
+    }
+
+    function saveTasks() {
+        const tasks = [];
+        taskList.querySelectorAll('li span').forEach(span => {
+            tasks.push(span.innerText);
+        });
+        localStorage.setItem('studySesh_tasks', JSON.stringify(tasks));
+    }
+
+    function createTaskElement(text) {
+        const li = document.createElement('li');
+        li.className = 'list-group-item bg-transparent border-secondary text-starlight d-flex justify-content-between align-items-center px-0';
+        li.innerHTML = `
+            <span><i class="far fa-circle me-2"></i>${text}</span>
+            <button class="btn btn-sm btn-link text-danger delete-task"><i class="fas fa-times"></i></button>
+        `;
+        
+        // Toggle complete
+        li.querySelector('span').addEventListener('click', function() {
+            const icon = this.querySelector('i');
+            if (this.style.textDecoration === 'line-through') {
+                this.style.textDecoration = 'none';
+                this.classList.remove('text-starlight-muted');
+                icon.classList.remove('fa-check-circle');
+                icon.classList.add('fa-circle');
+            } else {
+                this.style.textDecoration = 'line-through';
+                this.classList.add('text-starlight-muted');
+                icon.classList.remove('fa-circle');
+                icon.classList.add('fa-check-circle');
+            }
+        });
+
+        // Delete
+        li.querySelector('.delete-task').addEventListener('click', function() {
+            li.remove();
+            saveTasks();
+        });
+
+        taskList.appendChild(li);
+    }
+
+    function addTask() {
+        const text = taskInput.value.trim();
+        if (text) {
+            createTaskElement(text);
+            saveTasks();
+            taskInput.value = '';
+        }
+    }
+
+    addTaskBtn.addEventListener('click', addTask);
+    taskInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') addTask();
+    });
+
+    // --- Mission Timeline Logic ---
+    // Logic moved to global scope for reliability.
+    // See toggleTimeline(), addTimelineItem(), deleteTimelineItem(), renderTimeline() above.
+    
+    // Update T-minus every minute
+    setInterval(renderTimeline, 60000);
+
+    // --- Multiplayer / Docking Logic ---
+    // Logic moved to global scope.
+
+    // Start Polling
+    setInterval(pollRoomData, 3000);
+    pollRoomData(); // Initial call
+
+});
+</script>
+{% endblock %}

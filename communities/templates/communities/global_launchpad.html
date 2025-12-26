@@ -1,0 +1,104 @@
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block content %}
+<!-- Header Section with Navigation -->
+{% include 'includes/app_header.html' %}
+
+<div class="container-fluid py-5 position-relative" style="background-color: #0b0f19; min-height: 100vh; overflow: hidden;">
+    
+    <!-- Background stars canvas -->
+    <canvas id="starsCanvas" style="position: absolute; top: 0; left: 0; z-index: 0; width: 100%; height: 100%; pointer-events: none;">
+    </canvas>
+
+    <div class="container position-relative" style="z-index: 1;">
+        <!-- Header -->
+        <div class="row mb-5 align-items-center">
+            <div class="col-md-8">
+                <h1 class="display-4 text-white fw-bold">
+                    <span class="text-info">Global</span> Launchpad
+                </h1>
+                <p class="lead text-light opacity-75">Discover projects from all communities across the universe.</p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <!-- Optional: Filter or Search could go here -->
+            </div>
+        </div>
+
+        <!-- Project Grid -->
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            {% for project in projects %}
+            <div class="col">
+                <div class="card h-100 bg-dark border-secondary shadow-lg hover-lift" style="background: rgba(33, 37, 41, 0.8) !important; backdrop-filter: blur(5px);">
+                    <!-- Poster Image -->
+                    {% if project.poster_image %}
+                        <img src="{{ project.poster_image.url }}" class="card-img-top" alt="{{ project.title }}" style="height: 200px; object-fit: cover;">
+                    {% else %}
+                        <div class="card-img-top bg-secondary d-flex align-items-center justify-content-center" style="height: 200px; background: linear-gradient(45deg, #1a2a4a, #2c3e50);">
+                            <i class="fas fa-rocket fa-3x text-white opacity-50"></i>
+                        </div>
+                    {% endif %}
+
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h5 class="card-title text-white fw-bold mb-0">{{ project.title }}</h5>
+                            <span class="badge dynamic-bg-color" data-bg-color="{{ project.community.color }}">{{ project.community.title }}</span>
+                        </div>
+                        <p class="card-text text-light opacity-75 small mb-3">{{ project.abstract|truncatechars:100 }}</p>
+                        
+                        <!-- Skills -->
+                        <div class="mb-3">
+                            {% for skill in project.skills.all|slice:":3" %}
+                                <span class="badge bg-secondary bg-opacity-25 text-light border border-secondary me-1">{{ skill.name }}</span>
+                            {% endfor %}
+                            {% if project.skills.count > 3 %}
+                                <span class="badge bg-secondary bg-opacity-25 text-light border border-secondary">+{{ project.skills.count|add:"-3" }}</span>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mt-auto">
+                            <div class="d-flex align-items-center">
+                                <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center text-white small" style="width: 32px; height: 32px;">
+                                    {{ project.author.username|slice:":1"|upper }}
+                                </div>
+                                <small class="text-muted ms-2">{{ project.collaborators.count }} Member{% if project.collaborators.count != 1 %}s{% endif %}</small>
+                            </div>
+                            <a href="{% url 'communities:project_detail' project.community.slug project.slug %}" class="btn btn-outline-info btn-sm rounded-pill">View Project</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12 text-center py-5">
+                <div class="text-muted">
+                    <i class="fas fa-satellite fa-3x mb-3 opacity-50"></i>
+                    <h3>No projects launched yet.</h3>
+                    <p>Be the first to launch a project in your community!</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .hover-lift {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .hover-lift:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.3) !important;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.dynamic-bg-color').forEach(function(el) {
+            el.style.backgroundColor = el.dataset.bgColor;
+        });
+    });
+</script>
+
+<!-- External JavaScript for Space Background Animation -->
+<script src="{% static 'js/home.js' %}"></script>
+{% endblock %}

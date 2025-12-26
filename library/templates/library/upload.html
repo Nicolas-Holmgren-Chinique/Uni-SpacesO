@@ -1,0 +1,25 @@
+{% extends 'home/base.html' %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card bg-dark border-secondary">
+                <div class="card-header border-secondary">
+                    <h3 class="text-white mb-0">Upload Study Material</h3>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-4">Share your notes, summaries, or cheat sheets with the community. Help others succeed!</p>
+                    
+                    <div class="alert alert-info bg-transparent border-info text-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        This feature is coming soon! You will be able to upload PDFs and images here.
+                    </div>
+                    
+                    <a href="{% url 'library:home' %}" class="btn btn-outline-light">Back to Library</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

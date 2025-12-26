@@ -1,0 +1,140 @@
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block content %}
+<!-- Header Section with Navigation -->
+{% include 'includes/app_header.html' %}
+
+<div class="container-fluid py-5 position-relative" style="background-color: #0b0f19; min-height: 100vh; overflow: hidden;">
+    
+    <!-- Background stars canvas -->
+    <canvas id="starsCanvas" style="position: absolute; top: 0; left: 0; z-index: 0; width: 100%; height: 100%; pointer-events: none;">
+    </canvas>
+
+    <div class="container position-relative" style="z-index: 1;">
+        <!-- Navigation -->
+        <div class="mb-4">
+            <a href="{% url 'communities:project_gallery' community.slug %}" class="text-decoration-none text-muted">
+                <i class="fas fa-arrow-left me-1"></i> Back to Launchpad
+            </a>
+        </div>
+
+        <div class="row">
+            <!-- Main Content -->
+            <div class="col-lg-8">
+                <!-- Project Header -->
+                <div class="card bg-dark border-secondary shadow-lg mb-4" style="background: rgba(33, 37, 41, 0.8) !important; backdrop-filter: blur(5px);">
+                    {% if project.poster_image %}
+                        <img src="{{ project.poster_image.url }}" class="card-img-top" alt="{{ project.title }}" style="max-height: 400px; object-fit: cover;">
+                    {% endif %}
+                    <div class="card-body p-4">
+                        <h1 class="display-5 text-white fw-bold mb-3">{{ project.title }}</h1>
+                        
+                        <!-- Tags -->
+                        <div class="mb-4">
+                            {% for skill in project.skills.all %}
+                                <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 me-2 px-3 py-2 rounded-pill">{{ skill.name }}</span>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Abstract -->
+                        <div class="mb-4">
+                            <h5 class="text-light border-bottom border-secondary pb-2 mb-3">Abstract</h5>
+                            <p class="text-light opacity-75 lead">{{ project.abstract }}</p>
+                        </div>
+
+                        <!-- Full Description -->
+                        <div class="mb-4">
+                            <h5 class="text-light border-bottom border-secondary pb-2 mb-3">Mission Details</h5>
+                            <div class="text-light opacity-75">
+                                {{ project.description|linebreaks }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Comments Section (Placeholder) -->
+                <div class="card bg-dark border-secondary shadow-lg">
+                    <div class="card-header border-secondary bg-transparent">
+                        <h5 class="text-white mb-0">Mission Control Feedback</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">Comments coming soon...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="col-lg-4">
+                <!-- Actions -->
+                <div class="card bg-dark border-secondary shadow-lg mb-4">
+                    <div class="card-body">
+                        <div class="d-grid gap-3">
+                            {% if project.repo_url %}
+                            <a href="{{ project.repo_url }}" target="_blank" class="btn btn-outline-light btn-lg">
+                                <i class="fab fa-github me-2"></i> View Code
+                            </a>
+                            {% endif %}
+                            
+                            {% if project.demo_url %}
+                            <a href="{{ project.demo_url }}" target="_blank" class="btn btn-primary btn-lg">
+                                <i class="fas fa-external-link-alt me-2"></i> Live Demo
+                            </a>
+                            {% endif %}
+                            
+                            <button class="btn btn-outline-success">
+                                <i class="fas fa-arrow-up me-2"></i> Upvote Project
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Team -->
+                <div class="card bg-dark border-secondary shadow-lg mb-4">
+                    <div class="card-header border-secondary bg-transparent">
+                        <h5 class="text-white mb-0">Flight Crew</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <!-- Author -->
+                            <li class="list-group-item bg-transparent border-secondary px-0 d-flex align-items-center">
+                                {% if project.author.profile.profile_picture %}
+                                    <img src="{{ project.author.profile.profile_picture.url }}" class="rounded-circle me-3" width="40" height="40">
+                                {% else %}
+                                    <div class="rounded-circle bg-secondary me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                        <i class="fas fa-user text-white"></i>
+                                    </div>
+                                {% endif %}
+                                <div>
+                                    <h6 class="text-white mb-0">{{ project.author.username }}</h6>
+                                    <small class="text-muted">Mission Commander</small>
+                                </div>
+                            </li>
+                            
+                            <!-- Collaborators -->
+                            {% for collaborator in project.collaborators.all %}
+                            <li class="list-group-item bg-transparent border-secondary px-0 d-flex align-items-center">
+                                {% if collaborator.profile.profile_picture %}
+                                    <img src="{{ collaborator.profile.profile_picture.url }}" class="rounded-circle me-3" width="40" height="40">
+                                {% else %}
+                                    <div class="rounded-circle bg-secondary me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                        <i class="fas fa-user text-white"></i>
+                                    </div>
+                                {% endif %}
+                                <div>
+                                    <h6 class="text-white mb-0">{{ collaborator.username }}</h6>
+                                    <small class="text-muted">Specialist</small>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- External JavaScript for Space Background Animation -->
+<script src="{% static 'js/home.js' %}"></script>
+{% endblock %}

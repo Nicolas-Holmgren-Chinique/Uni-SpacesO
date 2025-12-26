@@ -174,6 +174,7 @@ Dependencies:
 
 <!-- JavaScript for Interactive Sub-Community Planet Visualization -->
 <script>
+(function() {
   // Canvas elements
   let starsCanvas, starsCtx, planetsCanvas, planetsCtx;
   
@@ -208,8 +209,8 @@ Dependencies:
     planetsCanvas.height = height;
   }
   
-  // Initialize when DOM is ready
-  document.addEventListener('DOMContentLoaded', function() {
+  // Initialize function
+  function initDashboard() {
     initializeCanvases();
     resizeCanvases();
     window.addEventListener('resize', resizeCanvases);
@@ -234,19 +235,20 @@ Dependencies:
     });
     
     // Handle planet clicks
-    planetsCanvas.addEventListener("click", (e) => {
-      console.log('Sub-community canvas clicked!');
-      const rect = planetsCanvas.getBoundingClientRect();
-      const clickX = e.clientX - rect.left;
-      const clickY = e.clientY - rect.top;
-      console.log(`Click position: (${clickX}, ${clickY})`);
-      console.log(`Available sub-community planets: ${planets.length}`);
+    if (planetsCanvas) {
+        planetsCanvas.addEventListener("click", (e) => {
+          console.log('Sub-community canvas clicked!');
+          const rect = planetsCanvas.getBoundingClientRect();
+          const clickX = e.clientX - rect.left;
+          const clickY = e.clientY - rect.top;
+          console.log(`Click position: (${clickX}, ${clickY})`);
+          console.log(`Available sub-community planets: ${planets.length}`);
 
-      planets.forEach((planet, index) => {
-        const dx = clickX - planet.x;
-        const dy = clickY - planet.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        console.log(`Sub-Planet ${index} (${planet.title}): position (${planet.x}, ${planet.y}), distance: ${distance}, radius: ${planet.radius}`);
+          planets.forEach((planet, index) => {
+            const dx = clickX - planet.x;
+            const dy = clickY - planet.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            console.log(`Sub-Planet ${index} (${planet.title}): position (${planet.x}, ${planet.y}), distance: ${distance}, radius: ${planet.radius}`);
         
         if (distance < planet.radius + 18) {
           console.log(`Clicked on sub-community: ${planet.title}`);
@@ -278,7 +280,8 @@ Dependencies:
       // Change cursor style based on hover state
       planetsCanvas.style.cursor = isHovering ? 'pointer' : 'default';
     });
-  });
+    }
+  }
 
   // Load and initialize sub-community planets
   function loadSubCommunities() {
@@ -594,6 +597,14 @@ Dependencies:
     
     planetsCtx.shadowBlur = 0;
   }
+
+  // Run initialization
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initDashboard);
+  } else {
+    initDashboard();
+  }
+})();
 </script>
 
 <!-- External JavaScript for Space Background Animation -->

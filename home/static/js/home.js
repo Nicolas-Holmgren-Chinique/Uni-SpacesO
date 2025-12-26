@@ -7,11 +7,15 @@ const STAR_COUNT = (window.innerWidth + window.innerHeight) / 8;
 let defaultCanvas, defaultContext;
 let scale = 1, width, height;
 let stars = [];
+let animationId;
 
 // Initialize with default canvas (for backward compatibility)
 function initDefault() {
+  if (animationId) cancelAnimationFrame(animationId);
+
   defaultCanvas = document.querySelector('canvas');
-  if (defaultCanvas) {
+  // Avoid initializing on dashboard canvases which are handled explicitly
+  if (defaultCanvas && defaultCanvas.id !== 'starsCanvas') {
     defaultContext = defaultCanvas.getContext('2d');
     generate();
     resize();
@@ -71,6 +75,10 @@ function createStarField(canvas, context) {
     },
     
     animate() {
+      if (!canvas.isConnected) {
+        this.stop();
+        return;
+      }
       context.clearRect(0, 0, canvas.width, canvas.height);
       this.update();
       this.render();
@@ -151,7 +159,7 @@ function step() {
    defaultContext.clearRect(0, 0, width, height);
    update();
    render();
-   requestAnimationFrame(step);
+   animationId = requestAnimationFrame(step);
 }
 
 function update() {
@@ -186,5 +194,13 @@ function render() {
 
 // Auto-initialize if there's a canvas on page load
 document.addEventListener('DOMContentLoaded', initDefault);
+
+// Re-initialize on HTMX navigation
+document.addEventListener('htmx:afterSwap', function(evt) {
+    // Only re-init if the swap included a canvas or we are on a new page structure
+    // Simple check: try to init default again
+    initDefault();
+});
+
 
 

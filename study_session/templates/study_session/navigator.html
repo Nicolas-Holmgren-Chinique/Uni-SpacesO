@@ -1,0 +1,1367 @@
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block title %}The Navigator - AI Command{% endblock %}
+
+{% block content %}
+    <!-- Header Section with Navigation -->
+    {% include 'includes/app_header.html' %}
+
+<style>
+    :root {
+        --void-black: #0C0B10;
+        --command-blue: #1E4C84;
+        --starlight-white: #F9F5F5;
+        --glass-panel: rgba(30, 76, 132, 0.3);
+        --sidebar-width: 350px;
+    }
+
+    body {
+        background-color: var(--void-black);
+        color: var(--starlight-white);
+        /* overflow: hidden; Removed to allow scrolling to footer */
+        margin: 0;
+        padding: 0;
+    }
+
+    /* Full Screen Container */
+    .navigator-container {
+        display: flex;
+        flex-direction: row;
+        height: calc(100vh - 60px); /* Adjust for navbar */
+        width: 100%;
+        background: radial-gradient(circle at center, #1a1a2e 0%, var(--void-black) 70%);
+    }
+
+    /* --- Sidebar (Left) --- */
+    .sidebar {
+        width: var(--sidebar-width);
+        height: 100%;
+        border-right: 1px solid var(--command-blue);
+        display: flex;
+        flex-direction: column;
+        background: rgba(12, 11, 16, 0.95);
+        z-index: 50;
+    }
+
+    /* Agenda Section (Top of Sidebar) */
+    .agenda-section {
+        height: 25%; /* Reduced height further */
+        flex: none;
+        padding: 20px;
+        overflow-y: auto;
+        border-bottom: 1px solid var(--command-blue);
+    }
+
+    .agenda-header {
+        font-size: 1.2rem;
+        color: var(--command-blue);
+        margin-bottom: 15px;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        border-bottom: 1px solid rgba(30, 76, 132, 0.3);
+        padding-bottom: 5px;
+    }
+
+    .agenda-item {
+        background: rgba(30, 76, 132, 0.1);
+        border-left: 3px solid var(--command-blue);
+        padding: 10px;
+        margin-bottom: 10px;
+        border-radius: 0 5px 5px 0;
+        transition: transform 0.2s;
+    }
+    .agenda-item:hover {
+        transform: translateX(5px);
+        background: rgba(30, 76, 132, 0.2);
+    }
+    .agenda-time {
+        font-family: 'Courier New', monospace;
+        font-size: 0.8rem;
+        color: rgba(249, 245, 245, 0.7);
+        margin-bottom: 3px;
+    }
+    .agenda-title {
+        font-weight: bold;
+        color: var(--starlight-white);
+    }
+    .agenda-empty {
+        color: rgba(249, 245, 245, 0.3);
+        font-style: italic;
+        text-align: center;
+        margin-top: 20px;
+    }
+
+    /* AI Assistant (Bottom of Sidebar) */
+    .comms-section {
+        height: 55%; /* Fixed height to lift input box up */
+        flex: none;
+        display: flex;
+        flex-direction: column;
+        padding: 15px;
+        background: rgba(0, 0, 0, 0.2);
+        border-bottom: 1px solid var(--command-blue);
+    }
+
+    .chat-header {
+        font-size: 0.9rem;
+        color: var(--command-blue);
+        margin-bottom: 10px;
+        font-weight: bold;
+    }
+
+    .chat-history {
+        flex-grow: 1;
+        overflow-y: auto;
+        margin-bottom: 10px;
+        padding-right: 5px;
+        font-family: 'Courier New', monospace;
+        font-size: 0.85rem;
+    }
+
+    .chat-bubble {
+        margin-bottom: 8px;
+        padding: 8px;
+        border-radius: 5px;
+        max-width: 90%;
+        animation: fadeIn 0.3s ease-out;
+    }
+
+    .chat-user {
+        background: rgba(30, 76, 132, 0.3);
+        border: 1px solid var(--command-blue);
+        align-self: flex-end;
+        margin-left: auto;
+        color: var(--starlight-white);
+    }
+
+    .chat-ai {
+        background: rgba(249, 245, 245, 0.05);
+        border: 1px solid rgba(249, 245, 245, 0.2);
+        align-self: flex-start;
+        color: var(--starlight-white);
+    }
+
+    .input-area {
+        display: flex;
+        gap: 5px;
+    }
+
+    .terminal-input {
+        flex-grow: 1;
+        background: rgba(0, 0, 0, 0.5);
+        border: 1px solid var(--command-blue);
+        color: var(--starlight-white);
+        padding: 8px;
+        font-family: 'Courier New', monospace;
+        border-radius: 3px;
+        resize: none;
+        height: 40px;
+        font-size: 0.85rem;
+    }
+
+    .terminal-input:focus {
+        outline: none;
+        border-color: var(--starlight-white);
+    }
+
+    .terminal-btn {
+        background: var(--command-blue);
+        color: var(--starlight-white);
+        border: none;
+        padding: 0 15px;
+        font-family: 'Courier New', monospace;
+        font-weight: bold;
+        cursor: pointer;
+        border-radius: 3px;
+        font-size: 0.8rem;
+    }
+    .terminal-btn:hover {
+        background: var(--starlight-white);
+        color: var(--void-black);
+    }
+
+    /* --- Main Content (Right) --- */
+    .main-content {
+        flex: 1;
+        position: relative;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    /* View Switcher */
+    .view-controls {
+        position: absolute;
+        top: 15px;
+        right: 20px;
+        z-index: 100;
+        display: flex;
+        gap: 5px;
+        background: rgba(12, 11, 16, 0.9);
+        padding: 5px;
+        border-radius: 5px;
+        border: 1px solid var(--command-blue);
+    }
+
+    .view-btn {
+        background: transparent;
+        border: 1px solid transparent;
+        color: rgba(249, 245, 245, 0.7);
+        padding: 5px 10px;
+        cursor: pointer;
+        font-family: 'Segoe UI', sans-serif;
+        font-size: 0.85rem;
+        transition: all 0.2s;
+        border-radius: 3px;
+    }
+
+    .view-btn.active {
+        background: var(--command-blue);
+        color: var(--starlight-white);
+    }
+    .view-btn:hover:not(.active) {
+        border-color: var(--command-blue);
+        color: var(--starlight-white);
+    }
+
+    /* Views Container */
+    .view-container {
+        display: none;
+        height: 100%;
+        width: 100%;
+    }
+    .view-container.active {
+        display: block;
+    }
+
+    /* Week View */
+    #weekView {
+        height: 100%;
+        overflow-y: auto; /* Vertical scroll for time */
+        background-image: 
+            linear-gradient(rgba(30, 76, 132, 0.1) 1px, transparent 1px);
+        background-size: 100% 50px; /* Match time grid */
+    }
+
+    .timeline-track {
+        display: flex;
+        height: 1200px; /* Fixed height for 19 hours (approx 60px per hour) */
+        width: 100%;
+        position: relative;
+        padding-top: 40px; /* Header space */
+    }
+
+    .day-column {
+        flex: 1;
+        border-right: 1px solid rgba(30, 76, 132, 0.2);
+        position: relative;
+        height: 100%;
+    }
+    .day-column:last-child {
+        border-right: none;
+    }
+
+    .day-header {
+        position: sticky;
+        top: 0;
+        left: 0;
+        width: 100%;
+        padding: 10px 0;
+        text-align: center;
+        font-weight: bold;
+        color: var(--starlight-white);
+        background: var(--void-black);
+        border-bottom: 1px solid var(--command-blue);
+        z-index: 20;
+        text-transform: uppercase;
+        font-size: 0.9rem;
+    }
+
+    /* Time Grid Lines */
+    .time-grid-line {
+        position: absolute;
+        width: 100%;
+        height: 1px;
+        background: rgba(30, 76, 132, 0.1);
+        left: 0;
+        pointer-events: none;
+    }
+    .time-label {
+        position: absolute;
+        left: 5px;
+        font-size: 0.7rem;
+        color: rgba(249, 245, 245, 0.3);
+        pointer-events: none;
+    }
+
+    /* Schedule Blocks */
+    .schedule-block {
+        position: absolute;
+        width: 90%;
+        left: 5%;
+        border-radius: 4px;
+        padding: 5px;
+        font-size: 0.75rem;
+        color: var(--void-black);
+        font-weight: 600;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        cursor: pointer;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        z-index: 10;
+        transition: transform 0.1s;
+    }
+    .schedule-block:hover {
+        transform: scale(1.02);
+        z-index: 30;
+    }
+
+    .block-fixed {
+        background: #e0e0e0;
+        border-left: 4px solid var(--command-blue);
+    }
+
+    .block-ai {
+        background: rgba(30, 76, 132, 0.8);
+        border: 1px solid var(--command-blue);
+        color: var(--starlight-white);
+    }
+
+    /* Delete Button Styles */
+    .delete-btn {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        width: 16px;
+        height: 16px;
+        background: rgba(255, 0, 0, 0.7);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        cursor: pointer;
+        opacity: 0;
+        transition: opacity 0.2s;
+        z-index: 50;
+    }
+    .schedule-block:hover .delete-btn,
+    .agenda-item:hover .delete-btn,
+    .month-event-dot:hover .delete-btn {
+        opacity: 1;
+    }
+    
+    .agenda-item {
+        position: relative; /* For delete button positioning */
+    }
+    .month-event-dot {
+        position: relative; /* For delete button positioning */
+        padding-right: 15px; /* Make space for button */
+    }
+
+    /* Month View Styles */
+    .month-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        grid-template-rows: 30px repeat(5, 1fr);
+        height: 100%;
+        width: 100%;
+        padding: 60px 20px 20px 20px; /* Top padding for controls */
+        gap: 5px;
+    }
+    .month-header-cell {
+        text-align: center;
+        font-weight: bold;
+        color: var(--command-blue);
+        border-bottom: 1px solid var(--command-blue);
+    }
+    .month-day-cell {
+        border: 1px solid rgba(30, 76, 132, 0.3);
+        padding: 5px;
+        position: relative;
+        background: rgba(30, 76, 132, 0.05);
+        transition: background 0.2s;
+    }
+    .month-day-cell:hover {
+        background: rgba(30, 76, 132, 0.15);
+        cursor: pointer;
+    }
+    .month-day-number {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        font-size: 0.8rem;
+        color: rgba(249, 245, 245, 0.5);
+    }
+    .month-event-dot {
+        display: block;
+        width: 100%;
+        padding: 2px 4px;
+        margin-top: 2px;
+        font-size: 0.7rem;
+        background: var(--command-blue);
+        color: white;
+        border-radius: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    /* Month Navigation Header */
+    .month-nav-header {
+        position: absolute;
+        top: 15px;
+        left: 20px;
+        display: flex;
+        gap: 15px;
+        align-items: center;
+        z-index: 100;
+    }
+    .month-nav-title {
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: var(--starlight-white);
+    }
+    .month-nav-btn {
+        background: transparent;
+        border: 1px solid var(--command-blue);
+        color: var(--starlight-white);
+        border-radius: 3px;
+        cursor: pointer;
+        padding: 2px 8px;
+    }
+    .month-nav-btn:hover {
+        background: var(--command-blue);
+    }
+
+    /* Semester View Styles */
+    .semester-container {
+        padding: 60px 20px 20px 20px;
+        height: 100%;
+        overflow-y: auto;
+    }
+    .semester-month {
+        margin-bottom: 20px;
+        border: 1px solid var(--command-blue);
+        background: rgba(30, 76, 132, 0.1);
+        padding: 10px;
+    }
+    .semester-month-title {
+        font-size: 1.2rem;
+        color: var(--starlight-white);
+        margin-bottom: 10px;
+        border-bottom: 1px solid rgba(30, 76, 132, 0.3);
+        padding-bottom: 5px;
+    }
+    .semester-events-list {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+    .semester-event-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 5px;
+        background: rgba(0,0,0,0.2);
+        border-left: 3px solid var(--command-blue);
+    }
+    .semester-event-date {
+        font-family: 'Courier New', monospace;
+        color: var(--command-blue);
+        min-width: 80px;
+    }
+
+    /* Config Modal */
+    .config-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 2000;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(5px);
+    }
+    .config-content {
+        background: var(--void-black);
+        border: 1px solid var(--command-blue);
+        padding: 20px;
+        width: 400px;
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(30, 76, 132, 0.5);
+    }
+    .config-header {
+        font-size: 1.2rem;
+        color: var(--starlight-white);
+        margin-bottom: 20px;
+        border-bottom: 1px solid var(--command-blue);
+        padding-bottom: 10px;
+    }
+    .config-group {
+        margin-bottom: 15px;
+    }
+    .config-label {
+        display: block;
+        color: var(--command-blue);
+        margin-bottom: 5px;
+        font-family: 'Courier New', monospace;
+    }
+    .config-input {
+        width: 100%;
+        background: rgba(30, 76, 132, 0.1);
+        border: 1px solid var(--command-blue);
+        color: var(--starlight-white);
+        padding: 8px;
+        border-radius: 5px;
+    }
+    .config-input:focus {
+        outline: none;
+        border-color: var(--starlight-white);
+    }
+    .config-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Flying Animation Class */
+    .flying-block {
+        position: fixed;
+        z-index: 1000;
+        transition: all 1s cubic-bezier(0.25, 1, 0.5, 1);
+        pointer-events: none;
+    }
+
+    /* Delete Confirmation Modal */
+    .delete-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(4px);
+        z-index: 3000;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.2s ease-in-out;
+    }
+    .delete-modal.show {
+        display: flex;
+        opacity: 1;
+    }
+    .delete-modal-content {
+        background: #151419;
+        border: 1px solid var(--command-blue);
+        padding: 25px;
+        width: 320px;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        transform: scale(0.95);
+        transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        text-align: center;
+    }
+    .delete-modal.show .delete-modal-content {
+        transform: scale(1);
+    }
+    .delete-modal-icon {
+        font-size: 2rem;
+        color: #ff4d4d;
+        margin-bottom: 15px;
+    }
+    .delete-modal-title {
+        font-size: 1.1rem;
+        font-weight: bold;
+        color: var(--starlight-white);
+        margin-bottom: 10px;
+    }
+    .delete-modal-text {
+        font-size: 0.9rem;
+        color: rgba(249, 245, 245, 0.7);
+        margin-bottom: 25px;
+        line-height: 1.4;
+    }
+    .delete-modal-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+    }
+    .delete-btn-confirm {
+        background: #d32f2f;
+        color: white;
+        border: none;
+        padding: 8px 20px;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+        font-size: 0.9rem;
+    }
+    .delete-btn-confirm:hover {
+        background: #b71c1c;
+    }
+    .delete-btn-cancel {
+        background: transparent;
+        color: rgba(249, 245, 245, 0.8);
+        border: 1px solid rgba(249, 245, 245, 0.2);
+        padding: 8px 20px;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 0.9rem;
+    }
+    .delete-btn-cancel:hover {
+        background: rgba(249, 245, 245, 0.1);
+        color: var(--starlight-white);
+    }
+
+    /* Footer Styling for Dark Mode */
+    footer {
+        display: none !important;
+    }
+    
+    /* footer {
+        color: var(--starlight-white);
+        border-top: 1px solid var(--command-blue);
+        padding-top: 2rem;
+    }
+    
+    footer h5 {
+        color: var(--starlight-white);
+        font-family: 'Segoe UI', sans-serif;
+    }
+    
+    footer .text-body-secondary {
+        color: rgba(249, 245, 245, 0.6) !important;
+    }
+    
+    footer .nav-link {
+        color: rgba(249, 245, 245, 0.6) !important;
+    }
+    
+    footer .nav-link:hover {
+        color: var(--starlight-white) !important;
+    }
+    
+    footer svg {
+        fill: var(--starlight-white);
+    } */
+
+</style>
+
+<div class="navigator-container">
+    <!-- Left Sidebar -->
+    <div class="sidebar">
+        <!-- Agenda Section -->
+        <div class="agenda-section">
+            <div class="agenda-header">Up Next</div>
+            <div id="agendaList">
+                <div class="agenda-empty">No upcoming tasks.</div>
+            </div>
+        </div>
+
+        <!-- AI Assistant -->
+        <div class="comms-section">
+            <div class="chat-header">AI ASSISTANT</div>
+            <div class="chat-history" id="chatHistory">
+                <div class="chat-bubble chat-ai">
+                    <strong>AI:</strong> Ready to plan.
+                </div>
+            </div>
+            <div class="input-area">
+                <textarea class="terminal-input" id="commandInput" placeholder="Type a command..."></textarea>
+                <button class="terminal-btn" onclick="sendCommand()">SEND</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- View Controls -->
+        <div class="view-controls">
+            <button class="view-btn active" onclick="switchView('week')">Week</button>
+            <button class="view-btn" onclick="switchView('month')">Month</button>
+            <button class="view-btn" onclick="switchView('semester')" id="termViewBtn">Term</button>
+            <button class="view-btn" onclick="toggleConfig()" title="Configure Term"><i class="fas fa-cog"></i></button>
+        </div>
+
+        <!-- Week View -->
+        <div id="weekView" class="view-container active">
+            <div class="timeline-track" id="timelineTrack">
+                <!-- Days generated by JS -->
+            </div>
+        </div>
+
+        <!-- Month View -->
+        <div id="monthView" class="view-container">
+            <div class="month-nav-header">
+                <button class="month-nav-btn" onclick="changeMonth(-1)"><</button>
+                <div class="month-nav-title" id="monthTitle">Month</div>
+                <button class="month-nav-btn" onclick="changeMonth(1)">></button>
+            </div>
+            <div class="month-grid" id="monthGrid">
+                <!-- Generated by JS -->
+            </div>
+        </div>
+
+        <!-- Semester View -->
+        <div id="semesterView" class="view-container">
+            <div class="semester-container" id="semesterContainer">
+                <!-- Generated by JS -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="delete-modal">
+    <div class="delete-modal-content">
+        <div class="delete-modal-icon">
+            <i class="fas fa-trash-alt"></i>
+        </div>
+        <div class="delete-modal-title">Delete Schedule Block?</div>
+        <div class="delete-modal-text">This action cannot be undone. Are you sure you want to remove this item?</div>
+        <div class="delete-modal-actions">
+            <button class="delete-btn-cancel" onclick="cancelDelete()">Cancel</button>
+            <button class="delete-btn-confirm" onclick="confirmDelete()">Delete</button>
+        </div>
+    </div>
+</div>
+
+<!-- Config Modal -->
+<div id="configModal" class="config-modal">
+    <div class="config-content">
+        <div class="config-header">Term Configuration</div>
+        
+        <div class="config-group">
+            <label class="config-label">System Type</label>
+            <select id="termType" class="config-input">
+                <option value="Semester">Semester</option>
+                <option value="Quarter">Quarter</option>
+            </select>
+        </div>
+
+        <div class="config-group">
+            <label class="config-label">Start Date</label>
+            <input type="date" id="termStart" class="config-input">
+        </div>
+
+        <div class="config-group">
+            <label class="config-label">End Date</label>
+            <input type="date" id="termEnd" class="config-input">
+        </div>
+
+        <div class="config-actions">
+            <button class="view-btn" onclick="toggleConfig()">Cancel</button>
+            <button class="terminal-btn" onclick="saveConfig()">Save Configuration</button>
+        </div>
+    </div>
+</div>
+
+{{ schedule_data|json_script:"schedule-data" }}
+
+<script>
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const timelineTrack = document.getElementById('timelineTrack');
+    const chatHistory = document.getElementById('chatHistory');
+    const commandInput = document.getElementById('commandInput');
+    const agendaList = document.getElementById('agendaList');
+    const currentUsername = "{{ user.username }}";
+    
+    // State
+    let scheduleData = JSON.parse(document.getElementById('schedule-data').textContent); // Store all blocks
+    console.log("Loaded Schedule Data:", scheduleData); // Debugging
+    let termConfig = {
+        type: 'Semester',
+        start: new Date().toISOString().split('T')[0], // Today
+        end: new Date(new Date().setMonth(new Date().getMonth() + 4)).toISOString().split('T')[0] // +4 Months
+    };
+
+    // --- Config Logic ---
+    function toggleConfig() {
+        const modal = document.getElementById('configModal');
+        modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
+        
+        // Pre-fill
+        if (modal.style.display === 'flex') {
+            document.getElementById('termType').value = termConfig.type;
+            document.getElementById('termStart').value = termConfig.start;
+            document.getElementById('termEnd').value = termConfig.end;
+        }
+    }
+
+    function saveConfig() {
+        termConfig.type = document.getElementById('termType').value;
+        termConfig.start = document.getElementById('termStart').value;
+        termConfig.end = document.getElementById('termEnd').value;
+        
+        // Update UI
+        document.getElementById('termViewBtn').innerText = termConfig.type;
+        toggleConfig();
+        
+        // Refresh Views
+        renderSemesterView();
+    }
+
+    // --- View Switching ---
+    function switchView(viewName) {
+        // Update Buttons
+        document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
+        // Only add active class if the event target is a button (might be called programmatically)
+        if (event && event.target && event.target.classList.contains('view-btn')) {
+            event.target.classList.add('active');
+        } else {
+            // Find the button for this view
+            const btn = Array.from(document.querySelectorAll('.view-btn')).find(b => b.innerText.toLowerCase().includes(viewName));
+            if (btn) btn.classList.add('active');
+        }
+
+        // Update Containers
+        document.querySelectorAll('.view-container').forEach(c => c.classList.remove('active'));
+        document.getElementById(viewName + 'View').classList.add('active');
+
+        // Re-render if needed
+        if (viewName === 'month') {
+            // Default to current month if not set
+            if (!currentViewDate) currentViewDate = new Date();
+            renderMonthView(currentViewDate.getFullYear(), currentViewDate.getMonth());
+        }
+        if (viewName === 'semester') renderSemesterView();
+    }
+
+    // --- Agenda Logic ---
+    function renderAgenda() {
+        agendaList.innerHTML = '';
+        
+        if (scheduleData.length === 0) {
+            agendaList.innerHTML = '<div class="agenda-empty">No upcoming tasks.</div>';
+            return;
+        }
+
+        // Sort by day then time
+        const sorted = [...scheduleData].sort((a, b) => {
+            // If dates are present, sort by date
+            if (a.date && b.date) return new Date(a.date) - new Date(b.date);
+            if (a.dayIndex !== b.dayIndex) return (a.dayIndex || 0) - (b.dayIndex || 0);
+            return a.startHour - b.startHour;
+        });
+
+        sorted.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'agenda-item';
+            
+            // Delete Button
+            const delBtn = document.createElement('div');
+            delBtn.className = 'delete-btn';
+            delBtn.innerHTML = '&times;';
+            delBtn.onclick = (e) => deleteBlock(item.id, e);
+            div.appendChild(delBtn);
+            
+            const time = document.createElement('div');
+            time.className = 'agenda-time';
+            
+            if (item.date) {
+                time.innerText = `${item.date} @ ${formatTime(item.startHour)}`;
+            } else {
+                let timeText = `${days[item.dayIndex || 0].substring(0,3)} @ ${formatTime(item.startHour)}`;
+                if (item.startDate || item.endDate) {
+                    const start = item.startDate ? item.startDate.substring(5) : '?';
+                    const end = item.endDate ? item.endDate.substring(5) : '?';
+                    timeText += ` (${start} to ${end})`;
+                }
+                time.innerText = timeText;
+            }
+            
+            const title = document.createElement('div');
+            title.className = 'agenda-title';
+            title.innerText = item.title;
+            
+            div.appendChild(time);
+            div.appendChild(title);
+            agendaList.appendChild(div);
+        });
+    }
+
+    function formatTime(hour) {
+        if (hour === 12) return '12 PM';
+        if (hour === 24) return '12 AM';
+        if (hour > 12) return (hour - 12) + ' PM';
+        return hour + ' AM';
+    }
+
+    function renderBlockOnTimeline(blockData) {
+        const { id, title, dayIndex, startHour, duration, type, date } = blockData;
+        
+        // If it's a specific date, only show if it's in the current week?
+        // For now, Week View is generic (recurring). 
+        // If we want to show specific dates in Week View, we need to know "which week" we are viewing.
+        // Assuming Week View is "Typical Week" for now, so we skip specific dates unless we add logic for "This Week".
+        // Let's show recurring items (no date) AND items for "this week" (if we had a concept of this week).
+        // For simplicity, let's show recurring items only in the generic week view.
+        if (date) return; 
+
+        const dayCol = document.getElementById(`day-${dayIndex}`);
+        if (!dayCol) return;
+
+        const block = document.createElement('div');
+        block.className = `schedule-block ${type === 'fixed' ? 'block-fixed' : 'block-ai'}`;
+        block.innerText = title;
+        
+        // Delete Button
+        const delBtn = document.createElement('div');
+        delBtn.className = 'delete-btn';
+        delBtn.innerHTML = '&times;';
+        delBtn.onclick = (e) => deleteBlock(id, e);
+        block.appendChild(delBtn);
+        
+        const startDisplayHour = 5;
+        const totalDisplayHours = 19;
+        
+        let displayStart = startHour;
+        if (displayStart < startDisplayHour) displayStart = startDisplayHour;
+        
+        const topPct = ((displayStart - startDisplayHour) / totalDisplayHours) * 100;
+        const heightPct = (duration / totalDisplayHours) * 100;
+        
+        block.style.top = `${topPct}%`;
+        block.style.height = `${heightPct}%`;
+        block.style.opacity = '1';
+        
+        dayCol.appendChild(block);
+    }
+
+    // --- Initialization ---
+    let currentViewDate = new Date(); // For Month View navigation
+
+    function changeMonth(delta) {
+        currentViewDate.setMonth(currentViewDate.getMonth() + delta);
+        renderMonthView(currentViewDate.getFullYear(), currentViewDate.getMonth());
+    }
+
+    function initTimeline() {
+        days.forEach((day, index) => {
+            const col = document.createElement('div');
+            col.className = 'day-column';
+            col.id = `day-${index}`;
+            
+            const header = document.createElement('div');
+            header.className = 'day-header';
+            header.innerText = day.substring(0, 3); // Shorten day names
+            col.appendChild(header);
+
+            // Add time grid lines (every 1 hour, 5 AM to 12 AM)
+            const startHour = 5;
+            const endHour = 24; // 12 AM next day
+            const totalHours = endHour - startHour;
+
+            for (let i = startHour; i <= endHour; i++) {
+                const line = document.createElement('div');
+                line.className = 'time-grid-line';
+                line.style.top = `${((i - startHour) / totalHours) * 100}%`;
+                
+                const label = document.createElement('div');
+                label.className = 'time-label';
+                label.innerText = formatTime(i);
+                label.style.top = `${((i - startHour) / totalHours) * 100}%`;
+                
+                col.appendChild(line);
+                col.appendChild(label);
+            }
+
+            timelineTrack.appendChild(col);
+        });
+        
+        // Init other views
+        renderMonthView(currentViewDate.getFullYear(), currentViewDate.getMonth());
+        renderSemesterView();
+        renderAgenda();
+        
+        // Render existing blocks
+        scheduleData.forEach(renderBlockOnTimeline);
+    }
+
+    function renderMonthView(year, month) {
+        const grid = document.getElementById('monthGrid');
+        grid.innerHTML = '';
+        
+        // Update Title
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        document.getElementById('monthTitle').innerText = `${monthNames[month]} ${year}`;
+
+        // Headers
+        ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].forEach(d => {
+            const h = document.createElement('div');
+            h.className = 'month-header-cell';
+            h.innerText = d;
+            grid.appendChild(h);
+        });
+
+        // Calculate days
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        const daysInMonth = lastDay.getDate();
+        
+        // Adjust start day (0=Sun, 1=Mon... we want 0=Mon)
+        let startDayOfWeek = firstDay.getDay() - 1;
+        if (startDayOfWeek === -1) startDayOfWeek = 6; // Sunday becomes 6
+
+        // Empty cells before 1st
+        for (let i = 0; i < startDayOfWeek; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'month-day-cell';
+            cell.style.background = 'transparent';
+            cell.style.border = 'none';
+            grid.appendChild(cell);
+        }
+
+        // Days
+        for (let i = 1; i <= daysInMonth; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'month-day-cell';
+            
+            const num = document.createElement('div');
+            num.className = 'month-day-number';
+            num.innerText = i;
+            cell.appendChild(num);
+
+            // Determine day index for recurring events (0=Mon, 6=Sun)
+            const currentDayDate = new Date(year, month, i);
+            let dayIndex = currentDayDate.getDay() - 1;
+            if (dayIndex === -1) dayIndex = 6;
+
+            // Helper for YYYY-MM-DD comparison (Local Time)
+            const toYMD = (d) => {
+                const y = d.getFullYear();
+                const m = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${y}-${m}-${day}`;
+            };
+            const currentYMD = toYMD(currentDayDate);
+
+            // Filter events for this day
+            const events = scheduleData.filter(e => {
+                // 1. Specific Date Match
+                if (e.date) {
+                    // e.date is YYYY-MM-DD string
+                    return e.date === currentYMD;
+                }
+                // 2. Recurring Match (if no date)
+                if (e.dayIndex === dayIndex) {
+                    // Check date range if exists
+                    if (e.startDate && currentYMD < e.startDate) return false;
+                    if (e.endDate && currentYMD > e.endDate) return false;
+                    return true;
+                }
+                return false;
+            });
+            
+            events.forEach(e => {
+                const dot = document.createElement('div');
+                dot.className = 'month-event-dot';
+                dot.innerText = e.title;
+                if (e.type === 'fixed') dot.style.background = '#d32f2f'; // Red for fixed
+                
+                // Delete Button
+                const delBtn = document.createElement('div');
+                delBtn.className = 'delete-btn';
+                delBtn.innerHTML = '&times;';
+                delBtn.onclick = (ev) => deleteBlock(e.id, ev);
+                dot.appendChild(delBtn);
+                
+                cell.appendChild(dot);
+            });
+            
+            // Click to add (Placeholder for "Make Changes")
+            cell.onclick = () => {
+                // alert(`Clicked ${year}-${month+1}-${i}`);
+                // Could open a modal here
+            };
+
+            grid.appendChild(cell);
+        }
+    }
+
+    function renderSemesterView() {
+        const container = document.getElementById('semesterContainer');
+        container.innerHTML = '';
+        
+        const start = new Date(termConfig.start);
+        const end = new Date(termConfig.end);
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        
+        let current = new Date(start.getFullYear(), start.getMonth(), 1);
+        
+        while (current <= end) {
+            const mIdx = current.getMonth();
+            const mName = monthNames[mIdx];
+            const year = current.getFullYear();
+
+            const mDiv = document.createElement('div');
+            mDiv.className = 'semester-month';
+            mDiv.style.cursor = 'pointer';
+            mDiv.title = "Click to view month";
+            
+            // Click handler to switch to month view
+            // Capture values in closure
+            (function(y, m) {
+                mDiv.onclick = () => {
+                    currentViewDate = new Date(y, m, 1);
+                    switchView('month');
+                };
+            })(year, mIdx);
+
+            const title = document.createElement('div');
+            title.className = 'semester-month-title';
+            title.innerText = `${mName} ${year}`;
+            mDiv.appendChild(title);
+            
+            const list = document.createElement('div');
+            list.className = 'semester-events-list';
+            
+            // Show events for this month (Specific dates only? Or recurring too?)
+            // Showing recurring events every month in the list might be too much clutter.
+            // Let's show specific dates for this month, and maybe a summary of recurring?
+            // For now, let's show specific dates falling in this month.
+            
+            const monthEvents = scheduleData.filter(e => {
+                if (e.date) {
+                    const d = new Date(e.date);
+                    return d.getFullYear() === year && d.getMonth() === mIdx;
+                }
+                return false; // Don't list recurring events in the semester overview to avoid clutter
+            });
+
+            if (monthEvents.length > 0) {
+                monthEvents.forEach(e => {
+                    const item = document.createElement('div');
+                    item.className = 'semester-event-item';
+                    
+                    const date = document.createElement('div');
+                    date.className = 'semester-event-date';
+                    date.innerText = new Date(e.date).getDate(); // Just the day number
+                    
+                    const text = document.createElement('div');
+                    text.innerText = `${e.title}`;
+                    
+                    item.appendChild(date);
+                    item.appendChild(text);
+                    list.appendChild(item);
+                });
+            } else {
+                const empty = document.createElement('div');
+                empty.style.fontStyle = 'italic';
+                empty.style.color = 'rgba(255,255,255,0.3)';
+                empty.style.padding = '5px';
+                empty.innerText = "No specific deadlines.";
+                list.appendChild(empty);
+            }
+            
+            mDiv.appendChild(list);
+            container.appendChild(mDiv);
+            
+            current.setMonth(current.getMonth() + 1);
+        }
+    }
+
+    initTimeline();
+
+    // --- Deletion Logic ---
+    let blockToDeleteId = null;
+
+    function deleteBlock(id, event) {
+        if (event) event.stopPropagation();
+        blockToDeleteId = id;
+        
+        const modal = document.getElementById('deleteModal');
+        modal.classList.add('show');
+    }
+
+    function cancelDelete() {
+        const modal = document.getElementById('deleteModal');
+        modal.classList.remove('show');
+        blockToDeleteId = null;
+    }
+
+    function confirmDelete() {
+        if (!blockToDeleteId) return;
+        
+        const id = blockToDeleteId;
+        const modal = document.getElementById('deleteModal');
+        
+        // Show loading state on button? Optional.
+        
+        fetch(`/study/api/delete_block/${id}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Remove from local state
+                scheduleData = scheduleData.filter(b => b.id !== id);
+                
+                // Refresh all views
+                document.getElementById('timelineTrack').innerHTML = '';
+                initTimeline(); // Re-renders everything
+                
+                // Close modal
+                cancelDelete();
+            } else {
+                alert('Error deleting block');
+                cancelDelete();
+            }
+        });
+    }
+
+    // --- Chat Logic ---
+    commandInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendCommand();
+        }
+    });
+
+    function sendCommand() {
+        const text = commandInput.value.trim();
+        if (!text) return;
+
+        // User Message
+        addChatBubble(currentUsername, text, 'chat-user');
+        commandInput.value = '';
+
+        // Simulate AI Processing
+        setTimeout(() => {
+            processCommand(text);
+        }, 800);
+    }
+
+    function addChatBubble(sender, text, className) {
+        const bubble = document.createElement('div');
+        bubble.className = `chat-bubble ${className}`;
+        bubble.innerHTML = `<strong>${sender}:</strong> ${text}`;
+        chatHistory.appendChild(bubble);
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+        return bubble;
+    }
+
+    function processCommand(text) {
+        const loadingBubble = addChatBubble('AI', 'Thinking...', 'chat-ai');
+        
+        fetch('{% url "study_session:navigator_command" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ command: text })
+        })
+        .then(response => response.json())
+        .then(data => {
+            loadingBubble.remove();
+            
+            if (data.error) {
+                addChatBubble('AI', 'Error: ' + data.error, 'chat-ai');
+                return;
+            }
+            
+            addChatBubble('AI', data.reply, 'chat-ai');
+            
+            if (data.schedule && Array.isArray(data.schedule)) {
+                data.schedule.forEach((block, index) => {
+                    setTimeout(() => {
+                        createBlockWithAnimation(block.title, block.dayIndex, block.startHour, block.duration, block.type);
+                    }, index * 500);
+                });
+            }
+        })
+        .catch(error => {
+            loadingBubble.remove();
+            addChatBubble('AI', 'System Failure: ' + error, 'chat-ai');
+        });
+    }
+
+    // --- Block Creation & Animation ---
+    function createBlockWithAnimation(title, dayIndex, startHour, durationHours, type) {
+        // 0. Update State
+        scheduleData.push({ title, dayIndex, startHour, duration: durationHours, type });
+        
+        // Update other views
+        renderMonthView();
+        renderSemesterView();
+        renderAgenda(); // Update Agenda
+
+        // 1. Create the final block element
+        const dayCol = document.getElementById(`day-${dayIndex}`);
+        const block = document.createElement('div');
+        block.className = `schedule-block ${type === 'fixed' ? 'block-fixed' : 'block-ai'}`;
+        block.innerText = title;
+        
+        const startDisplayHour = 5;
+        const totalDisplayHours = 19;
+        
+        let displayStart = startHour;
+        if (displayStart < startDisplayHour) displayStart = startDisplayHour;
+        
+        const topPct = ((displayStart - startDisplayHour) / totalDisplayHours) * 100;
+        const heightPct = (durationHours / totalDisplayHours) * 100;
+        
+        block.style.top = `${topPct}%`;
+        block.style.height = `${heightPct}%`;
+        block.style.opacity = '0';
+        
+        dayCol.appendChild(block);
+
+        // 2. Create Flying Element (Only if in Week View)
+        if (document.getElementById('weekView').classList.contains('active')) {
+            const flyer = document.createElement('div');
+            flyer.className = block.className + ' flying-block';
+            flyer.innerText = title;
+            flyer.style.width = '200px';
+            flyer.style.height = '40px';
+            
+            const inputRect = commandInput.getBoundingClientRect();
+            flyer.style.left = inputRect.left + 'px';
+            flyer.style.top = inputRect.top + 'px';
+            
+            document.body.appendChild(flyer);
+
+            flyer.getBoundingClientRect(); // Reflow
+
+            const targetRect = block.getBoundingClientRect();
+            
+            flyer.style.left = targetRect.left + 'px';
+            flyer.style.top = targetRect.top + 'px';
+            flyer.style.width = targetRect.width + 'px';
+            flyer.style.height = targetRect.height + 'px';
+
+            setTimeout(() => {
+                flyer.remove();
+                block.style.opacity = '1';
+            }, 1000);
+        } else {
+            block.style.opacity = '1';
+        }
+    }
+
+</script>
+{% endblock %}

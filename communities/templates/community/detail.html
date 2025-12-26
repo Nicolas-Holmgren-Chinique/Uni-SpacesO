@@ -60,7 +60,7 @@ Dependencies:
               </li>
               {% if community.parent %}
               <li class="breadcrumb-item">
-                <a href="{% url 'community_dashboard' slug=community.parent.slug %}" class="link-body-emphasis text-decoration-none">
+                <a href="{% url 'communities:community_dashboard' slug=community.parent.slug %}" class="link-body-emphasis text-decoration-none">
                   <span class="parent-community-color" data-color="{{ community.parent.color }}">{{ community.parent.title }}</span> Sector
                 </a>
               </li>
@@ -89,7 +89,7 @@ Dependencies:
             <ul class="dropdown-menu text-small">
               <li><a class="dropdown-item" href="{% url 'dashboard' %}">Main Dashboard</a></li>
               {% if community.parent %}
-                <li><a class="dropdown-item" href="{% url 'community_dashboard' slug=community.parent.slug %}">{{ community.parent.title }} Sector</a></li>
+                <li><a class="dropdown-item" href="{% url 'communities:community_dashboard' slug=community.parent.slug %}">{{ community.parent.title }} Sector</a></li>
               {% endif %}
               <li><a class="dropdown-item" href="{% url 'profile_view' %}">Profile</a></li>
               <li><hr class="dropdown-divider"></li>
@@ -237,7 +237,7 @@ Dependencies:
           <div class="mb-3">
             <small class="text-muted">Parent Community</small>
             <p class="mb-0">
-              <a href="{% url 'community_dashboard' slug=community.parent.slug %}" class="text-decoration-none">
+              <a href="{% url 'communities:community_dashboard' slug=community.parent.slug %}" class="text-decoration-none">
                 <span class="parent-community-color" data-color="{{ community.parent.color }}">{{ community.parent.title }}</span>
               </a>
             </p>

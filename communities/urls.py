@@ -22,17 +22,26 @@ and handle routing for all community-related pages.
 from django.urls import path
 from . import views
 
+app_name = 'communities'
+
 # URL patterns for community functionality
 urlpatterns = [
     # Community creation endpoint
     path('community/create/', views.create_community, name='create_community'),
+
+    # Global Launchpad
+    path('projects/', views.global_launchpad, name='global_launchpad'),
     
     # Sub-community dashboard - shows planets for sub-communities within a super community
     path('<slug:slug>/dashboard/', views.community_dashboard, name='community_dashboard'),
     
     # Individual community detail page - where users collaborate
     path('<slug:slug>/', views.community_detail, name='community_detail'),
-    
+
+    # Project gallery and detail views
+    path('<slug:community_slug>/launchpad/', views.project_gallery, name='project_gallery'),
+    path('<slug:community_slug>/launchpad/<slug:project_slug>/', views.project_detail, name='project_detail'),
+
     # Additional URL patterns could include:
     # - Community member management
     # - Community settings/editing

@@ -32,6 +32,24 @@ import os
 # This is the root directory of the Django project
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Load .env file manually since python-dotenv might not be installed
+env_path = BASE_DIR / '.env'
+if env_path.exists():
+    with open(env_path) as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith('#'):
+                try:
+                    key, value = line.split('=', 1)
+                    # Remove surrounding quotes if present
+                    value = value.strip()
+                    if (value.startswith('"') and value.endswith('"')) or \
+                       (value.startswith("'") and value.endswith("'")):
+                        value = value[1:-1]
+                    os.environ[key.strip()] = value
+                except ValueError:
+                    pass # Skip lines that don't have an equals sign
+
 # Security Settings
 # =================
 
@@ -75,6 +93,9 @@ INSTALLED_APPS = [
     # --------------------
     "home",                         # Homepage and landing page content
     "communities",                  # Community creation and management
+    "library",                      # Free textbook library and study materials
+    "careers",                      # Internship board and career prep
+    "study_session",                # Virtual study room with focus tools
 ]
 
 # Middleware Configuration
@@ -265,3 +286,7 @@ LOGIN_URL = 'login'                 # Redirect here when @login_required fails
 # SECURE_CONTENT_TYPE_NOSNIFF = True
 # SECURE_BROWSER_XSS_FILTER = True
 # X_FRAME_OPTIONS = 'DENY'
+
+# AI Configuration
+# ================
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
